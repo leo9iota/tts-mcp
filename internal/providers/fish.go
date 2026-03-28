@@ -1,4 +1,4 @@
-package tts
+package providers
 
 import (
 	"bytes"

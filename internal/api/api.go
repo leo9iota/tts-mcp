@@ -12,18 +12,29 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"tts-mcp/internal/audio"
-	"tts-mcp/internal/tts"
+	"tts-mcp/internal/providers"
 )
 
 // Start initializes the toolsets and serves the MCP stdio handler
 func Start() {
 	s := server.NewMCPServer("tts-mcp", "1.0.0")
 
-	providers := []tts.Provider{
-		tts.NewFishAudioProvider(),
+	var providerList []providers.Provider
+
+	if os.Getenv("FISH_AUDIO_API_KEY") != "" {
+		providerList = append(providerList, providers.NewFishAudioProvider())
+	}
+	if os.Getenv("NEETS_API_KEY") != "" {
+		providerList = append(providerList, providers.NewNeetsProvider())
+	}
+	if os.Getenv("ELEVENLABS_API_KEY") != "" {
+		providerList = append(providerList, providers.NewElevenLabsProvider())
+	}
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		providerList = append(providerList, providers.NewOpenAIProvider())
 	}
 
-	for _, p := range providers {
+	for _, p := range providerList {
 		opts := []mcp.ToolOption{
 			mcp.WithDescription(p.Description()),
 		}
@@ -38,7 +49,7 @@ func Start() {
 	}
 }
 
-func createHandler(provider tts.Provider) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func createHandler(provider providers.Provider) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
