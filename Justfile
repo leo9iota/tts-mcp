@@ -1,19 +1,73 @@
-# Build the tts-mcp executable
-build:
-    go build -o tts-mcp.exe ./cmd/tts-mcp
+set dotenv-load
 
-# Run the mcp server locally over stdio
+# The default recipe when just is invoked with no arguments
+default:
+    @just --list
+
+# ==========================================
+# Build & Execution
+# ==========================================
+
+# Build the generic tts-mcp executable for the current host OS
+build: deps
+    go build -o bin/tts-mcp.exe ./cmd/tts-mcp
+
+# Build cross-platform binaries (Windows, Linux, macOS)
+build-all: deps
+    GOOS=windows GOARCH=amd64 go build -o bin/tts-mcp-windows-amd64.exe ./cmd/tts-mcp
+    GOOS=linux GOARCH=amd64 go build -o bin/tts-mcp-linux-amd64 ./cmd/tts-mcp
+    GOOS=darwin GOARCH=arm64 go build -o bin/tts-mcp-darwin-arm64 ./cmd/tts-mcp
+
+# Run the MCP server locally over stdio
 run: build
-    ./tts-mcp.exe
+    ./bin/tts-mcp.exe
 
-# Start the mcp inspector to test the server visually
+# Start the MCP inspector to test the server visually
 inspect: build
-    bunx @modelcontextprotocol/inspector ./tts-mcp.exe
+    bunx @modelcontextprotocol/inspector ./bin/tts-mcp.exe
 
-# Clean binary and temporary audio files
-clean:
-    rm -f tts-mcp.exe temp.wav temp.mp3
+# ==========================================
+# Testing & Linting
+# ==========================================
 
-# Install the dependencies
+# Run the pure Go test suite
+test:
+    go test -v ./...
+
+# Run the test suite with race detection enabled
+test-race:
+    go test -race -v ./...
+
+# Run go vet to catch suspiciously constructed code
+vet:
+    go vet ./...
+
+# Run standard formatting to clean up syntax
+format:
+    gofmt -s -w .
+
+# Run standard linting and formatting pipeline
+lint: format vet
+    @echo "Linting complete."
+
+# ==========================================
+# Maintenance & Utilities
+# ==========================================
+
+# Download modules and clean the go.mod and go.sum files
 deps:
     go mod tidy
+    go mod download
+
+# Clean up binaries and temporary audio cache files
+clean:
+    rm -rf bin/
+    rm -f temp.wav temp.mp3
+
+# Set up the .env file from the template if it doesn't exist
+setup-env:
+    @if [ ! -f .env ]; then cp .env.example .env && echo "Created .env from template!"; else echo ".env already exists."; fi
+
+# Initialize a completely fresh developer environment
+init: setup-env deps build
+    @echo "Development environment initialized successfully!"
