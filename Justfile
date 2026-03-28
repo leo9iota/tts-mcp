@@ -1,6 +1,6 @@
 # Build the tts-mcp executable
 build:
-    go build -o tts-mcp.exe .
+    go build -o tts-mcp.exe ./cmd/tts-mcp
 
 # Run the mcp server locally over stdio
 run: build
@@ -8,7 +8,7 @@ run: build
 
 # Start the mcp inspector to test the server visually
 inspect: build
-    npx @modelcontextprotocol/inspector ./tts-mcp.exe
+    bunx @modelcontextprotocol/inspector ./tts-mcp.exe
 
 # Clean binary and temporary audio files
 clean:
