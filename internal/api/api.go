@@ -41,7 +41,7 @@ func Start() {
 		opts = append(opts, p.ToolArguments()...)
 
 		tool := mcp.NewTool(p.ToolName(), opts...)
-		s.AddTool(tool, createHandler(p))
+		s.AddTool(tool, createHandler(s, p))
 	}
 
 	if err := server.ServeStdio(s); err != nil {
@@ -49,12 +49,14 @@ func Start() {
 	}
 }
 
-func createHandler(provider providers.Provider) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
 			return mcp.NewToolResultError("Arguments missing or invalid format"), nil
 		}
+
+		progressToken := request.Params.Meta.ProgressToken
 
 		text, ok := args["text"].(string)
 		if !ok {
@@ -100,10 +102,38 @@ func createHandler(provider providers.Provider) func(ctx context.Context, reques
 			return mcp.NewToolResultError(fmt.Sprintf("Failed to decode mp3: %v", err)), nil
 		}
 		defer streamer.Close()
+		// 4. Construct lightweight telemetry closure
+		var reporter func(pos int, total int, message string) = nil
+		lastPercent := -1
+		if progressToken != nil && progressToken != "" {
+			reporter = func(pos int, total int, message string) {
+				percent := 0
+				if total > 0 {
+					percent = int((float64(pos) / float64(total)) * 100)
+				}
 
+				if percent != lastPercent || total <= 0 {
+					lastPercent = percent
+					progFloat := float64(pos)
+					if total <= 0 {
+						progFloat = 0 // indeterminate
+					}
+
+					// Send dynamic RPC boundary over HTTP map structure
+					s.SendNotificationToAllClients("notifications/progress", map[string]interface{}{
+						"progressToken": progressToken,
+						"progress":      progFloat,
+						"total":         float64(total),
+						"message":       message,
+					})
+				}
+			}
+		}
+
+		// 5. Stream sequence locking
 		audioComplete := make(chan error, 1)
 		go func() {
-			audioComplete <- audio.WaitAndPlay(streamer, format.SampleRate)
+			audioComplete <- audio.WaitAndPlay(streamer, format.SampleRate, reporter)
 		}()
 
 		// 4. Thread-lock the active response on the active OS block waiting for ctx.Done internally!

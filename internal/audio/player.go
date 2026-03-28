@@ -35,7 +35,7 @@ func resampleToSpeaker(streamer beep.Streamer, from beep.SampleRate) beep.Stream
 }
 
 // WaitAndPlay reads the decoded audio stream dynamically into the hardware speaker blocking until complete.
-func WaitAndPlay(stream beep.Streamer, originalRate beep.SampleRate) error {
+func WaitAndPlay(stream beep.StreamSeeker, originalRate beep.SampleRate, reporter func(pos int, total int, message string)) error {
 	// Acquire sequence lock exactly like blacktop/mcp-tts to prevent concurrent waifus shouting over each other.
 	TTSMutex.Lock()
 	defer TTSMutex.Unlock()
@@ -46,6 +46,30 @@ func WaitAndPlay(stream beep.Streamer, originalRate beep.SampleRate) error {
 
 	playback := resampleToSpeaker(stream, originalRate)
 	done := make(chan bool, 1)
+
+	// Spin up telemetry reporter if a callback was injected
+	if reporter != nil {
+		go func() {
+			ticker := time.NewTicker(250 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-done:
+					// Signal received, gracefully stop telemetry
+					return
+				case <-ticker.C:
+					// Total length is often -1 (unknown) for HTTP mp3 streams
+					total := stream.Len()
+					pos := stream.Position()
+					msg := fmt.Sprintf("Playing: %.1fs", float64(pos)/float64(originalRate))
+					if total > 0 {
+					    msg = fmt.Sprintf("Playing: %.1fs / %.1fs", float64(pos)/float64(originalRate), float64(total)/float64(originalRate))
+					}
+					reporter(pos, total, msg)
+				}
+			}
+		}()
+	}
 
 	// Inject sequence callback to block thread via channel exactly like blacktop/mcp-tts
 	speaker.Play(beep.Seq(playback, beep.Callback(func() {
