@@ -33,6 +33,18 @@ func Start() {
 	if os.Getenv("OPENAI_API_KEY") != "" {
 		providerList = append(providerList, providers.NewOpenAIProvider())
 	}
+	if os.Getenv("CARTESIA_API_KEY") != "" {
+		providerList = append(providerList, providers.NewCartesiaProvider())
+	}
+	if os.Getenv("PLAYHT_API_KEY") != "" && os.Getenv("PLAYHT_USER_ID") != "" {
+		providerList = append(providerList, providers.NewPlayHTProvider())
+	}
+	if os.Getenv("AZURE_SPEECH_KEY") != "" && os.Getenv("AZURE_SPEECH_REGION") != "" {
+		providerList = append(providerList, providers.NewAzureProvider())
+	}
+	if os.Getenv("LOCAL_TTS_ENDPOINT") != "" {
+		providerList = append(providerList, providers.NewLocalProvider())
+	}
 
 	for _, p := range providerList {
 		opts := []mcp.ToolOption{
