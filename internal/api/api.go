@@ -1,27 +1,21 @@
-package main
+package api
 
 import (
 	"context"
 	"fmt"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
+	"tts-mcp/internal/audio"
+	"tts-mcp/internal/tts"
 )
 
-func main() {
-	// Try to load .env file if it exists
-	_ = godotenv.Load()
+// Start initializes the toolsets and serves the MCP stdio handler
+func Start() {
+	s := server.NewMCPServer("tts-mcp", "1.0.0")
 
-	// Initialize the MCP server
-	s := server.NewMCPServer(
-		"tts-mcp",
-		"1.0.0",
-		// We avoid verbose logging by default when using stdio to prevent polluting the transport
-	)
-
-	// Register the tool with the AI
 	tool := mcp.NewTool("generate_speech",
 		mcp.WithDescription("Takes conversational text and a specific character voice ID, generates the audio, and plays it out loud on the host machine."),
 		mcp.WithString("text",
@@ -34,10 +28,8 @@ func main() {
 		),
 	)
 
-	// Link the handler
 	s.AddTool(tool, generateSpeechHandler)
 
-	// Start serving over STDIO
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 	}
@@ -59,18 +51,15 @@ func generateSpeechHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 		return mcp.NewToolResultError("Arguments missing or invalid: 'voice_id' must be a string"), nil
 	}
 
-	// Phase 1: Call the TTS Client
-	err := GenerateSpeech(text, voiceID)
+	err := tts.GenerateSpeech(text, voiceID)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("TTS API generation failed: %v", err)), nil
 	}
 
-	// Phase 2: Play the localized audio file
-	err = PlayAudio()
+	err = audio.Play("temp.wav")
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("Local audio playback execution failed: %v", err)), nil
 	}
 
-	// Return success cleanly
 	return mcp.NewToolResultText("Successfully generated and played speech aloud to the user."), nil
 }

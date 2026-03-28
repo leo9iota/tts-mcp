@@ -1,4 +1,4 @@
-package main
+package tts
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-type TTSRequest struct {
+type Request struct {
 	Text        string `json:"text"`
 	ReferenceID string `json:"reference_id"`
 	Format      string `json:"format"`
@@ -22,7 +22,7 @@ func GenerateSpeech(text string, voiceID string) error {
 		return fmt.Errorf("FISH_AUDIO_API_KEY environment variable is not set")
 	}
 
-	reqBody := TTSRequest{
+	reqBody := Request{
 		Text:        text,
 		ReferenceID: voiceID,
 		Format:      "wav",
@@ -38,10 +38,8 @@ func GenerateSpeech(text string, voiceID string) error {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
 
-	// Set required headers for Fish Audio REST API
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
-	// Some versions of their API require the model specified here or in the body
 	req.Header.Set("model", "s2-pro") 
 
 	client := &http.Client{}
