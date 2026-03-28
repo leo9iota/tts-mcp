@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","id":3,"params":{"name":"say","arguments":{"text":"Hello, world!\"; touch /tmp/hacked1"}},"method":"tools/call"}
