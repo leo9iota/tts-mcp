@@ -21,24 +21,10 @@ go.work.sum
 !.env.example
 !.env.template
 
-# Tooling
-.agents/
-.agent/
-_agents/
-_agent/
-.cursor/
-.cursorrules
-.gemini/
-.ai/
-.cline/
-.aider/
-*.scratch.*
-cursor.json
-cline_tasks.md
-GEMINI.md
-
 # Project
 /tts-mcp
+.agents/
+docs/
 tts-mcp.exe
 temp.wav
 temp.mp3
