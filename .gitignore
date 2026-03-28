@@ -1,0 +1,55 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Tooling
+.agents/
+.agent/
+_agents/
+_agent/
+.cursor/
+.cursorrules
+.gemini/
+.ai/
+.cline/
+.aider/
+*.scratch.*
+cursor.json
+cline_tasks.md
+GEMINI.md
+
+# Project
+tts-mcp
+tts-mcp.exe
+temp.wav
+temp.mp3
+*.wav
+*.mp3
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
