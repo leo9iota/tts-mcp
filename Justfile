@@ -44,7 +44,7 @@ vet:
 
 # Run standard formatting to clean up syntax
 format:
-    gofmt -s -w .
+    gofumpt -l -w .
 
 # Run standard linting and formatting pipeline
 lint: format vet
