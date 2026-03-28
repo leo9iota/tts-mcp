@@ -13,6 +13,7 @@ var (
 	speakerInitOnce   sync.Once
 	speakerInitErr    error
 	speakerSampleRate beep.SampleRate
+	TTSMutex          sync.Mutex // Global mutex preventing simultaneous overlapping audio playback
 )
 
 // initSpeaker initializes the speaker exactly once per process execution.
@@ -35,6 +36,10 @@ func resampleToSpeaker(streamer beep.Streamer, from beep.SampleRate) beep.Stream
 
 // WaitAndPlay reads the decoded audio stream dynamically into the hardware speaker blocking until complete.
 func WaitAndPlay(stream beep.Streamer, originalRate beep.SampleRate) error {
+	// Acquire sequence lock exactly like blacktop/mcp-tts to prevent concurrent waifus shouting over each other.
+	TTSMutex.Lock()
+	defer TTSMutex.Unlock()
+
 	if err := initSpeaker(originalRate); err != nil {
 		return fmt.Errorf("failed to init speaker driver: %v", err)
 	}
