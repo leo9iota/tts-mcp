@@ -61,39 +61,39 @@ func createHandler(provider tts.Provider) func(ctx context.Context, request mcp.
 			return mcp.NewToolResultError(fmt.Sprintf("%s streaming failed: %v", provider.ToolName(), err)), nil
 		}
 
-	// 2. Clone the stream: Pass one to local file, pass one to hardware speaker pipe
-	file, err := os.Create("temp.mp3")
-	if err != nil {
-		respBody.Close()
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to construct audio disk file: %v", err)), nil
-	}
-	absPath, _ := filepath.Abs("temp.mp3")
-
-	pipeReader, pipeWriter := io.Pipe()
-
-	go func() {
-		defer pipeWriter.Close()
-		defer respBody.Close()
-		defer file.Close()
-
-		tee := io.TeeReader(respBody, file)
-		_, copyErr := io.Copy(pipeWriter, tee)
-		if copyErr != nil {
-			pipeWriter.CloseWithError(copyErr)
+		// 2. Clone the stream: Pass one to local file, pass one to hardware speaker pipe
+		file, err := os.Create("temp.mp3")
+		if err != nil {
+			respBody.Close()
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to construct audio disk file: %v", err)), nil
 		}
-	}()
+		absPath, _ := filepath.Abs("temp.mp3")
 
-	// 3. Mount pipe locally within beep audio decoder
-	streamer, format, err := mp3.Decode(pipeReader)
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to decode mp3: %v", err)), nil
-	}
-	defer streamer.Close()
+		pipeReader, pipeWriter := io.Pipe()
 
-	audioComplete := make(chan error, 1)
-	go func() {
-		audioComplete <- audio.WaitAndPlay(streamer, format.SampleRate)
-	}()
+		go func() {
+			defer pipeWriter.Close()
+			defer respBody.Close()
+			defer file.Close()
+
+			tee := io.TeeReader(respBody, file)
+			_, copyErr := io.Copy(pipeWriter, tee)
+			if copyErr != nil {
+				pipeWriter.CloseWithError(copyErr)
+			}
+		}()
+
+		// 3. Mount pipe locally within beep audio decoder
+		streamer, format, err := mp3.Decode(pipeReader)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to decode mp3: %v", err)), nil
+		}
+		defer streamer.Close()
+
+		audioComplete := make(chan error, 1)
+		go func() {
+			audioComplete <- audio.WaitAndPlay(streamer, format.SampleRate)
+		}()
 
 		// 4. Thread-lock the active response on the active OS block waiting for ctx.Done internally!
 		select {
