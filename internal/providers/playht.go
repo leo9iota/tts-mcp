@@ -65,6 +65,12 @@ func (p *PlayHTProvider) StreamSpeech(ctx context.Context, text string, voiceID 
 		Speed:        1.0,
 	}
 
+	if opts, ok := ctx.Value("options").(map[string]interface{}); ok {
+		if speed, ok := opts["speed"].(float64); ok {
+			reqBody.Speed = speed
+		}
+	}
+
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal JSON: %v", err)

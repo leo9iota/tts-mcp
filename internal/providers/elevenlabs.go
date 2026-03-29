@@ -75,6 +75,18 @@ func (p *ElevenLabsProvider) StreamSpeech(ctx context.Context, text string, voic
 		},
 	}
 
+	if opts, ok := ctx.Value("options").(map[string]interface{}); ok {
+		if stability, ok := opts["stability"].(float64); ok {
+			reqBody.VoiceSettings.Stability = stability
+		}
+		if similarity, ok := opts["similarity_boost"].(float64); ok {
+			reqBody.VoiceSettings.SimilarityBoost = similarity
+		}
+		if style, ok := opts["style"].(float64); ok {
+			reqBody.VoiceSettings.Style = style
+		}
+	}
+
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal JSON: %v", err)

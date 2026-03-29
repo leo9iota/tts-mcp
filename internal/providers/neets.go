@@ -15,9 +15,10 @@ import (
 var _ Provider = (*NeetsProvider)(nil)
 
 type NeetsRequest struct {
-	Text    string `json:"text"`
-	VoiceID string `json:"voice_id"`
-	Fmt     string `json:"fmt"`
+	Text    string  `json:"text"`
+	VoiceID string  `json:"voice_id"`
+	Fmt     string  `json:"fmt"`
+	Speed   float64 `json:"speed,omitempty"`
 }
 
 type NeetsProvider struct{}
@@ -55,6 +56,13 @@ func (p *NeetsProvider) StreamSpeech(ctx context.Context, text string, voiceID s
 		Text:    text,
 		VoiceID: voiceID,
 		Fmt:     "mp3",
+		Speed:   1.0,
+	}
+
+	if opts, ok := ctx.Value("options").(map[string]interface{}); ok {
+		if speed, ok := opts["speed"].(float64); ok {
+			reqBody.Speed = speed
+		}
 	}
 
 	jsonData, err := json.Marshal(reqBody)

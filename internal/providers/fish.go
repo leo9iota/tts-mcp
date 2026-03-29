@@ -16,9 +16,10 @@ import (
 var _ Provider = (*FishAudioProvider)(nil)
 
 type Request struct {
-	Text        string `json:"text"`
-	ReferenceID string `json:"reference_id"`
-	Format      string `json:"format"`
+	Text        string  `json:"text"`
+	ReferenceID string  `json:"reference_id"`
+	Format      string  `json:"format"`
+	Latency     string  `json:"latency,omitempty"`
 }
 
 type FishAudioProvider struct{}
@@ -53,6 +54,14 @@ func (p *FishAudioProvider) StreamSpeech(ctx context.Context, text string, voice
 		Text:        text,
 		ReferenceID: voiceID,
 		Format:      "mp3", // Use robust mp3 format so we can stream it dynamically
+		Latency:     "normal",
+	}
+
+	if opts, ok := ctx.Value("options").(map[string]interface{}); ok {
+		// Example: map exact structural latency overrides for the anime API
+		if latency, ok := opts["latency"].(string); ok {
+			reqBody.Latency = latency
+		}
 	}
 
 	jsonData, err := json.Marshal(reqBody)
