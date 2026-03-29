@@ -9,10 +9,11 @@ import (
 )
 
 type Persona struct {
-	Name     string `json:"name"`
-	Trope    string `json:"trope"`
-	Provider string `json:"provider"`
-	VoiceID  string `json:"voice_id"`
+	Name     string                 `json:"name"`
+	Trope    string                 `json:"trope"`
+	Provider string                 `json:"provider"`
+	VoiceID  string                 `json:"voice_id"`
+	Options  map[string]interface{} `json:"options,omitempty"`
 }
 
 type Manager struct {

@@ -107,6 +107,9 @@ func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx co
 			voiceID = vid
 		}
 
+		// Inject the entire Argument footprint into Context so polymorphic providers can extract custom mappings
+		ctx = context.WithValue(ctx, "options", args)
+
 		// 1. Connect the read closer explicitly capturing the HTTP payload as it downloads
 		respBody, err := provider.StreamSpeech(ctx, text, voiceID)
 		if err != nil {
@@ -221,11 +224,24 @@ func createPersonaHandler(s *server.MCPServer, mng *personas.Manager, providerLi
 		}
 
 		// Map to standard arguments dynamically
-		request.Params.Arguments = map[string]interface{}{
+		mappedArgs := map[string]interface{}{
 			"text":     args["text"],
 			"voice_id": persona.VoiceID,
 			"persona":  personaName,
 		}
+
+		// Phase 2: Tool Argument Hydration (FEAT-003)
+		// Hydrate arbitrary modulation options securely scaling provider integrations
+		if persona.Options != nil {
+			for k, v := range persona.Options {
+				// Don't overwrite the core structural strings manually set above
+				if _, exists := mappedArgs[k]; !exists {
+					mappedArgs[k] = v
+				}
+			}
+		}
+
+		request.Params.Arguments = mappedArgs
 
 		// Delegate directly to the standard handler!
 		return createHandler(s, targetProvider)(ctx, request)
