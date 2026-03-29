@@ -12,12 +12,16 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"tts-mcp/internal/audio"
+	"tts-mcp/internal/personas"
 	"tts-mcp/internal/providers"
 )
 
 // Start initializes the toolsets and serves the MCP stdio handler
 func Start() {
 	s := server.NewMCPServer("tts-mcp", "1.0.0")
+
+	// 1. Load available Personas
+	personaManager, _ := personas.NewManager()
 
 	var providerList []providers.Provider
 
@@ -54,6 +58,16 @@ func Start() {
 
 		tool := mcp.NewTool(p.ToolName(), opts...)
 		s.AddTool(tool, createHandler(s, p))
+	}
+
+	// Register unified Persona Tool if any exist
+	if len(personaManager.GetOptions()) > 0 && personaManager.GetOptions()[0] != "" {
+		personaTool := mcp.NewTool("speak_as_persona",
+			mcp.WithDescription("Summon a specific character persona from the locally configured data/ directories. This abstracts the TTS backend and dynamically binds voices for seamless testing."),
+			mcp.WithString("persona", mcp.Required(), mcp.Description("The loaded character persona to invoke."), mcp.Enum(personaManager.GetOptions()...)),
+			mcp.WithString("text", mcp.Required(), mcp.Description("The text for the character to say.")),
+		)
+		s.AddTool(personaTool, createPersonaHandler(s, personaManager, providerList))
 	}
 
 	if err := server.ServeStdio(s); err != nil {
@@ -160,5 +174,46 @@ func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx co
 			audio.Stop()
 			return mcp.NewToolResultError("Audio generation forcefully cancelled by user context!"), nil
 		}
+	}
+}
+
+func createPersonaHandler(s *server.MCPServer, mng *personas.Manager, providerList []providers.Provider) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Arguments missing or invalid format"), nil
+		}
+
+		personaName, ok := args["persona"].(string)
+		if !ok {
+			return mcp.NewToolResultError("Arguments missing or invalid: 'persona' must be a string"), nil
+		}
+
+		persona, exists := mng.GetPersona(personaName)
+		if !exists {
+			return mcp.NewToolResultError(fmt.Sprintf("Persona '%s' not found in loaded configurations", personaName)), nil
+		}
+
+		// Find the matching provider
+		var targetProvider providers.Provider
+		for _, p := range providerList {
+			if p.ToolName() == persona.Provider {
+				targetProvider = p
+				break
+			}
+		}
+
+		if targetProvider == nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Provider '%s' required by Persona '%s' is not active. Check API Keys in .env", persona.Provider, persona.Name)), nil
+		}
+
+		// Map to standard arguments dynamically
+		request.Params.Arguments = map[string]interface{}{
+			"text":     args["text"],
+			"voice_id": persona.VoiceID,
+		}
+
+		// Delegate directly to the standard handler!
+		return createHandler(s, targetProvider)(ctx, request)
 	}
 }
