@@ -60,7 +60,7 @@ deps:
     go mod download
 
 # Clean up binaries and temporary audio cache files
-clean:
+wipe:
     rm -rf bin/
     rm -f temp.wav temp.mp3
 
