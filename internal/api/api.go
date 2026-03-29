@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/gopxl/beep/v2/mp3"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
 	"tts-mcp/internal/audio"
+	"tts-mcp/internal/output"
 	"tts-mcp/internal/personas"
 	"tts-mcp/internal/providers"
 )
@@ -70,6 +70,16 @@ func Start() {
 		s.AddTool(personaTool, createPersonaHandler(s, personaManager, providerList))
 	}
 
+	// Register IDE Persona Generator Tool
+	generatorTool := mcp.NewTool("create_persona",
+		mcp.WithDescription("Creates and hot-loads a new character persona bound to a specific TTS provider and voice ID directly into the file system. Use this to permanently register voices."),
+		mcp.WithString("name", mcp.Required(), mcp.Description("The precise single-word formal name of the character (e.g., 'Geralt').")),
+		mcp.WithString("trope", mcp.Required(), mcp.Description("A brief semantic description of their personality or vocal trope (e.g., 'gruff medieval narrator').")),
+		mcp.WithString("provider", mcp.Required(), mcp.Description("The exact ToolName of the underlying TTS provider (e.g., 'fishaudio_tts', 'elevenlabs_tts').")),
+		mcp.WithString("voice_id", mcp.Required(), mcp.Description("The exact hex or UUID string natively mapping to the provider's specific voice model.")),
+	)
+	s.AddTool(generatorTool, createPersonaGeneratorHandler(personaManager))
+
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 	}
@@ -82,7 +92,10 @@ func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx co
 			return mcp.NewToolResultError("Arguments missing or invalid format"), nil
 		}
 
-		progressToken := request.Params.Meta.ProgressToken
+		var progressToken interface{}
+		if request.Params.Meta != nil {
+			progressToken = request.Params.Meta.ProgressToken
+		}
 
 		text, ok := args["text"].(string)
 		if !ok {
@@ -100,13 +113,13 @@ func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx co
 			return mcp.NewToolResultError(fmt.Sprintf("%s streaming failed: %v", provider.ToolName(), err)), nil
 		}
 
-		// 2. Clone the stream: Pass one to local file, pass one to hardware speaker pipe
-		file, err := os.Create("temp.mp3")
+		// 2. Clone the stream: Pass one to dynamically generated local artifact file
+		personaName, _ := args["persona"].(string) // Safe to cast implicitly fallback to "" if missing
+		file, absPath, err := output.GenerateOutputFile(personaName, provider.ToolName())
 		if err != nil {
 			respBody.Close()
-			return mcp.NewToolResultError(fmt.Sprintf("Failed to construct audio disk file: %v", err)), nil
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to construct history audio file: %v", err)), nil
 		}
-		absPath, _ := filepath.Abs("temp.mp3")
 
 		pipeReader, pipeWriter := io.Pipe()
 
@@ -211,9 +224,43 @@ func createPersonaHandler(s *server.MCPServer, mng *personas.Manager, providerLi
 		request.Params.Arguments = map[string]interface{}{
 			"text":     args["text"],
 			"voice_id": persona.VoiceID,
+			"persona":  personaName,
 		}
 
 		// Delegate directly to the standard handler!
 		return createHandler(s, targetProvider)(ctx, request)
+	}
+}
+
+func createPersonaGeneratorHandler(mng *personas.Manager) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Arguments missing or invalid format"), nil
+		}
+
+		name, _ := args["name"].(string)
+		trope, _ := args["trope"].(string)
+		provider, _ := args["provider"].(string)
+		voiceID, _ := args["voice_id"].(string)
+
+		if name == "" || provider == "" || voiceID == "" {
+			return mcp.NewToolResultError("Missing required parameters: 'name', 'provider', and 'voice_id' are strictly required."), nil
+		}
+
+		p := personas.Persona{
+			Name:     name,
+			Trope:    trope,
+			Provider: provider,
+			VoiceID:  voiceID,
+		}
+
+		if err := mng.SavePersona(p); err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to construct and save persona file: %v", err)), nil
+		}
+
+		successMsg := fmt.Sprintf("Successfully generated and hot-loaded new persona: '%s' (%s) bound to %s via Voice ID: %s",
+			p.Name, p.Trope, p.Provider, p.VoiceID)
+		return mcp.NewToolResultText(successMsg), nil
 	}
 }

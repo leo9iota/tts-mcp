@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Persona struct {
@@ -15,7 +16,8 @@ type Persona struct {
 }
 
 type Manager struct {
-	Personas map[string]Persona
+	Personas    map[string]Persona
+	PersonasDir string
 }
 
 func NewManager() (*Manager, error) {
@@ -47,6 +49,8 @@ func NewManager() (*Manager, error) {
 			return nil, fmt.Errorf("failed to create data directory: %w", err)
 		}
 	}
+
+	m.PersonasDir = personasDir
 
 	files, err := os.ReadDir(personasDir)
 	if err != nil {
@@ -94,4 +98,27 @@ func (m *Manager) GetOptions() []string {
 func (m *Manager) GetPersona(name string) (Persona, bool) {
 	p, exists := m.Personas[name]
 	return p, exists
+}
+
+// SavePersona maps a structural persona payload directly into the data folder as a perfectly structured JSON artifact.
+func (m *Manager) SavePersona(p Persona) error {
+	if p.Name == "" {
+		return fmt.Errorf("persona must have a valid name")
+	}
+
+	fileName := strings.ToLower(strings.ReplaceAll(p.Name, " ", "_")) + ".json"
+	path := filepath.Join(m.PersonasDir, fileName)
+
+	bytes, err := json.MarshalIndent(p, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal persona: %w", err)
+	}
+
+	if err := os.WriteFile(path, bytes, 0644); err != nil {
+		return fmt.Errorf("failed to write persona file: %w", err)
+	}
+
+	// Hot reload into the active execution pointer immediately
+	m.Personas[p.Name] = p
+	return nil
 }
