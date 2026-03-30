@@ -23,9 +23,6 @@ go.work.sum
 
 # Project
 /tts-mcp
-.agents/
-docs/
-tts-mcp.exe
 temp.wav
 temp.mp3
 *.wav
