@@ -64,9 +64,12 @@ wipe:
     rm -rf bin/
     rm -f temp.wav temp.mp3
 
-# Set up the .env file from the template if it doesn't exist
-setup-env:
-    @if [ ! -f .env ]; then cp .env.example .env && echo "Created .env from template!"; else echo ".env already exists."; fi
+# Configure the MCP server API keys interactively
+config: deps
+    go run ./cmd/config
+
+# Setup the environment using the configurator (alias mapping)
+setup-env: config
 
 # Initialize a completely fresh developer environment
 init: setup-env deps build
