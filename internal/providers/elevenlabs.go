@@ -75,7 +75,7 @@ func (p *ElevenLabsProvider) StreamSpeech(ctx context.Context, text string, voic
 		},
 	}
 
-	if opts, ok := ctx.Value("options").(map[string]interface{}); ok {
+	if opts, ok := ctx.Value(OptionsKey).(map[string]interface{}); ok {
 		if stability, ok := opts["stability"].(float64); ok {
 			reqBody.VoiceSettings.Stability = stability
 		}

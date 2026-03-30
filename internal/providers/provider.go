@@ -10,6 +10,14 @@ import (
 // Provider defines the polymorphic interface for any AI TTS engine.
 // All providers must return an io.ReadCloser of exact `.mp3` bytes or standard chunks
 // capable of being directly decoded natively by go-beep.
+
+// ContextKey distinctly prevents upstream abstract library collisions natively blocking linter SA1029 
+type ContextKey string
+
+const (
+	// OptionsKey maps arbitrary metadata mapped inside personas structs
+	OptionsKey ContextKey = "options"
+)
 type Provider interface {
 	// ToolName returns the unique MCP tool identifier (e.g. "fishaudio_tts").
 	ToolName() string

@@ -57,7 +57,7 @@ func (p *FishAudioProvider) StreamSpeech(ctx context.Context, text string, voice
 		Latency:     "normal",
 	}
 
-	if opts, ok := ctx.Value("options").(map[string]interface{}); ok {
+	if opts, ok := ctx.Value(OptionsKey).(map[string]interface{}); ok {
 		// Example: map exact structural latency overrides for the anime API
 		if latency, ok := opts["latency"].(string); ok {
 			reqBody.Latency = latency
