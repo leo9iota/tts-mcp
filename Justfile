@@ -11,6 +11,7 @@ default:
 # Build the generic tts-mcp executable for the current host OS
 build: deps
     go build -o bin/tts-mcp.exe ./cmd/tts-mcp
+    go build -o bin/config.exe ./cmd/config
 
 # Build cross-platform binaries (Windows, Linux, macOS)
 build-all: deps
