@@ -34,7 +34,7 @@ func GenerateOutputFile(personaName, providerName string) (*os.File, string, err
 
 	// Explicitly nest inside the data/ folder alongside personas/
 	outputsDir := filepath.Join(rootDir, "data", "output")
-	if err := os.MkdirAll(outputsDir, 0755); err != nil {
+	if err := os.MkdirAll(outputsDir, 0o755); err != nil {
 		return nil, "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 

@@ -46,7 +46,7 @@ func NewManager() (*Manager, error) {
 	if personasDir == "" {
 		// Fallback: create it in the CWD if none exists in typical places
 		personasDir = filepath.Join(".", "data")
-		if err := os.MkdirAll(personasDir, 0755); err != nil {
+		if err := os.MkdirAll(personasDir, 0o755); err != nil {
 			return nil, fmt.Errorf("failed to create data directory: %w", err)
 		}
 	}
@@ -115,7 +115,7 @@ func (m *Manager) SavePersona(p Persona) error {
 		return fmt.Errorf("failed to marshal persona: %w", err)
 	}
 
-	if err := os.WriteFile(path, bytes, 0644); err != nil {
+	if err := os.WriteFile(path, bytes, 0o644); err != nil {
 		return fmt.Errorf("failed to write persona file: %w", err)
 	}
 
