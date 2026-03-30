@@ -26,11 +26,11 @@ jobs:
           go mod verify
           go mod download
 
-      - name: Run GolangCI-Lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          args: --timeout=5m
+      - name: Install and Run GolangCI-Lint Natively
+        # Compiling from source dynamically aligns the linter's build parser directly with the project's bleeding-edge `go.mod` version, bypassing the static pre-compiled GitHub Action restrictions.
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          $(go env GOPATH)/bin/golangci-lint run --timeout=5m
 
       - name: Execute Bounds Test Coverage
         # Bound exactly against TEST-001 ensuring AudioEngine pointer isolation survives CI constraints
@@ -38,4 +38,4 @@ jobs:
 
       - name: Assert Structural Binary Build
         # Confirms the compiler securely generates native objects without missing linkers
-        run: go build -v ./cmd/tts-mcp
+        run: go build -v -o bin/tts-mcp ./cmd/tts-mcp
