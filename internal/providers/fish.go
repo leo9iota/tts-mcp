@@ -16,10 +16,10 @@ import (
 var _ Provider = (*FishAudioProvider)(nil)
 
 type Request struct {
-	Text        string  `json:"text"`
-	ReferenceID string  `json:"reference_id"`
-	Format      string  `json:"format"`
-	Latency     string  `json:"latency,omitempty"`
+	Text        string `json:"text"`
+	ReferenceID string `json:"reference_id"`
+	Format      string `json:"format"`
+	Latency     string `json:"latency,omitempty"`
 }
 
 type FishAudioProvider struct{}

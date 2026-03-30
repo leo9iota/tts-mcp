@@ -281,7 +281,7 @@ func createPersonaGeneratorHandler(s *server.MCPServer, mng *personas.Manager) f
 		successMsg := fmt.Sprintf("Successfully generated and hot-loaded new persona: '%s' (%s) bound to %s via Voice ID: %s",
 			p.Name, p.Trope, p.Provider, p.VoiceID)
 
-		// Fire an autonomous ghost tool ping updating IDE instances dynamically 
+		// Fire an autonomous ghost tool ping updating IDE instances dynamically
 		s.SendNotificationToAllClients("notifications/tools/list_changed", nil)
 
 		return mcp.NewToolResultText(successMsg), nil

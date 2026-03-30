@@ -12,10 +12,10 @@ import (
 // AudioEngine encapsulates isolated audio stream context, eliminating
 // the old package-level global deadlocks preventing multi-device routing scaling.
 type AudioEngine struct {
-	mu           sync.Mutex
-	initOnce     sync.Once
-	initErr      error
-	sampleRate   beep.SampleRate
+	mu         sync.Mutex
+	initOnce   sync.Once
+	initErr    error
+	sampleRate beep.SampleRate
 }
 
 // NewEngine safely invokes a completely separated driver tracking state.

@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// Dynamically load .env from the executable's directory or the parent directory.
-	// This ensures the API keys are loaded regardless of the client's working directory 
+	// This ensures the API keys are loaded regardless of the client's working directory
 	// (e.g., when the MCP Inspector or Claude runs it from an arbitrary temp path).
 	if exePath, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exePath)

@@ -15,10 +15,10 @@ import (
 var _ Provider = (*PlayHTProvider)(nil)
 
 type PlayHTRequest struct {
-	Text         string `json:"text"`
-	Voice        string `json:"voice"`
-	OutputFormat string `json:"output_format"`
-	VoiceEngine  string `json:"voice_engine"`
+	Text         string  `json:"text"`
+	Voice        string  `json:"voice"`
+	OutputFormat string  `json:"output_format"`
+	VoiceEngine  string  `json:"voice_engine"`
 	Speed        float64 `json:"speed,omitempty"`
 }
 
@@ -53,7 +53,7 @@ func (p *PlayHTProvider) StreamSpeech(ctx context.Context, text string, voiceID 
 
 	if voiceID == "" {
 		// Default to a solid standard voice (e.g. female-cs or generic Susan)
-		voiceID = "s3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json" 
+		voiceID = "s3://voice-cloning-zero-shot/d9ff78ba-d016-47f6-b0ef-dd630f59414e/female-cs/manifest.json"
 	}
 
 	url := "https://api.play.ht/api/v2/tts/stream"

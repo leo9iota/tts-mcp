@@ -10,7 +10,7 @@ import (
 func TestManager_SavePersona(t *testing.T) {
 	// 1. Arrange: Create a strictly localized isolated mock environment
 	tempDir := t.TempDir()
-	
+
 	m := &Manager{
 		Personas:    make(map[string]Persona),
 		PersonasDir: tempDir,
@@ -87,7 +87,7 @@ func TestManager_GetOptions(t *testing.T) {
 		t.Errorf("Expected exactly 2 generated schema objects mapped tightly from dictionary, got %v", opts)
 	}
 
-	// Dictionaries are implicitly unordered in Go, just ensure presence explicitly 
+	// Dictionaries are implicitly unordered in Go, just ensure presence explicitly
 	foundMegumin, foundGeralt := false, false
 	for _, opt := range opts {
 		if opt == "Megumin" {
