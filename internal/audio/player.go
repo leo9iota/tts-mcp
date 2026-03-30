@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ type AudioEngine struct {
 	initOnce   sync.Once
 	initErr    error
 	sampleRate beep.SampleRate
+	activeCtx  context.Context
 }
 
 // NewEngine safely invokes a completely separated driver tracking state.
@@ -41,9 +43,13 @@ func (e *AudioEngine) resampleToSpeaker(streamer beep.Streamer, from beep.Sample
 }
 
 // WaitAndPlay blocks actively listening on localized mutex pointer until speaker hardware explicitly succeeds sequence execution.
-func (e *AudioEngine) WaitAndPlay(stream beep.StreamSeeker, originalRate beep.SampleRate, reporter func(pos int, total int, message string)) error {
+func (e *AudioEngine) WaitAndPlay(ctx context.Context, stream beep.StreamSeeker, originalRate beep.SampleRate, reporter func(pos int, total int, message string)) error {
 	e.mu.Lock()
-	defer e.mu.Unlock()
+	e.activeCtx = ctx
+	defer func() {
+		e.activeCtx = nil
+		e.mu.Unlock()
+	}()
 
 	if err := e.initSpeaker(originalRate); err != nil {
 		return fmt.Errorf("failed to init speaker driver: %v", err)
@@ -82,6 +88,9 @@ func (e *AudioEngine) WaitAndPlay(stream beep.StreamSeeker, originalRate beep.Sa
 }
 
 // Stop sends instantaneous silence bytes to speaker buffer directly wiping hardware stream locking buffers
-func (e *AudioEngine) Stop() {
-	speaker.Clear()
+// Only triggers if the context trying to stop it is currently the active playback.
+func (e *AudioEngine) Stop(ctx context.Context) {
+	if e.activeCtx != nil && e.activeCtx == ctx {
+		speaker.Clear()
+	}
 }

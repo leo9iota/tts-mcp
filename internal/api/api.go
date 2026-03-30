@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -60,7 +61,7 @@ func Start() {
 		opts = append(opts, p.ToolArguments()...)
 
 		tool := mcp.NewTool(p.ToolName(), opts...)
-		s.AddTool(tool, createHandler(s, p, audioEngine))
+		s.AddTool(tool, WithRecovery(createHandler(s, p, audioEngine)))
 	}
 
 	// Register unified Persona Tool if any exist
@@ -70,7 +71,7 @@ func Start() {
 			mcp.WithString("persona", mcp.Required(), mcp.Description("The loaded character persona to invoke."), mcp.Enum(personaManager.GetOptions()...)),
 			mcp.WithString("text", mcp.Required(), mcp.Description("The text for the character to say.")),
 		)
-		s.AddTool(personaTool, createPersonaHandler(s, personaManager, providerList, audioEngine))
+		s.AddTool(personaTool, WithRecovery(createPersonaHandler(s, personaManager, providerList, audioEngine)))
 	}
 
 	// Register IDE Persona Generator Tool
@@ -81,7 +82,7 @@ func Start() {
 		mcp.WithString("provider", mcp.Required(), mcp.Description("The exact ToolName of the underlying TTS provider (e.g., 'fishaudio_tts', 'elevenlabs_tts').")),
 		mcp.WithString("voice_id", mcp.Required(), mcp.Description("The exact hex or UUID string natively mapping to the provider's specific voice model.")),
 	)
-	s.AddTool(generatorTool, createPersonaGeneratorHandler(s, personaManager))
+	s.AddTool(generatorTool, WithRecovery(createPersonaGeneratorHandler(s, personaManager)))
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
@@ -119,30 +120,29 @@ func createHandler(s *server.MCPServer, provider providers.Provider, audioEngine
 			return mcp.NewToolResultError(fmt.Sprintf("%s streaming failed: %v", provider.ToolName(), err)), nil
 		}
 
-		// 2. Clone the stream: Pass one to dynamically generated local artifact file
+		defer respBody.Close()
+
+		// 2. Read full network payload into memory buffer to guarantee jitter-free beep playback
+		audioBytes, err := io.ReadAll(respBody)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to download audio stream: %v", err)), nil
+		}
+
+		// 3. Write memory slice directly to disk artifact independent of hardware stream
 		personaName, _ := args["persona"].(string) // Safe to cast implicitly fallback to "" if missing
 		file, absPath, err := output.GenerateOutputFile(personaName, provider.ToolName())
 		if err != nil {
-			respBody.Close()
 			return mcp.NewToolResultError(fmt.Sprintf("Failed to construct history audio file: %v", err)), nil
 		}
+		if _, err := file.Write(audioBytes); err != nil {
+			file.Close()
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to write to local history file: %v", err)), nil
+		}
+		file.Close()
 
-		pipeReader, pipeWriter := io.Pipe()
-
-		go func() {
-			defer pipeWriter.Close()
-			defer respBody.Close()
-			defer file.Close()
-
-			tee := io.TeeReader(respBody, file)
-			_, copyErr := io.Copy(pipeWriter, tee)
-			if copyErr != nil {
-				pipeWriter.CloseWithError(copyErr)
-			}
-		}()
-
-		// 3. Mount pipe locally within beep audio decoder
-		streamer, format, err := mp3.Decode(pipeReader)
+		// 4. Mount fully loaded memory buffer locally into beep audio decoder
+		audioReader := io.NopCloser(bytes.NewReader(audioBytes))
+		streamer, format, err := mp3.Decode(audioReader)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("Failed to decode mp3: %v", err)), nil
 		}
@@ -178,7 +178,7 @@ func createHandler(s *server.MCPServer, provider providers.Provider, audioEngine
 		// 5. Stream sequence locking
 		audioComplete := make(chan error, 1)
 		go func() {
-			audioComplete <- audioEngine.WaitAndPlay(streamer, format.SampleRate, reporter)
+			audioComplete <- audioEngine.WaitAndPlay(ctx, streamer, format.SampleRate, reporter)
 		}()
 
 		// 4. Thread-lock the active response on the active OS block waiting for ctx.Done internally!
@@ -190,7 +190,7 @@ func createHandler(s *server.MCPServer, provider providers.Provider, audioEngine
 			return mcp.NewToolResultText(fmt.Sprintf("Successfully generated natively and played speech aloud to the user using %s!\nSaved localized version at: %s", provider.ToolName(), absPath)), nil
 
 		case <-ctx.Done():
-			audioEngine.Stop()
+			audioEngine.Stop(ctx)
 			return mcp.NewToolResultError("Audio generation forcefully cancelled by user context!"), nil
 		}
 	}
