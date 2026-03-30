@@ -20,6 +20,9 @@ import (
 func Start() {
 	s := server.NewMCPServer("tts-mcp", "1.0.0")
 
+	// Phase 2: Scaffold decoupled engine instance per server session
+	audioEngine := audio.NewEngine()
+
 	// 1. Load available Personas
 	personaManager, _ := personas.NewManager()
 
@@ -57,7 +60,7 @@ func Start() {
 		opts = append(opts, p.ToolArguments()...)
 
 		tool := mcp.NewTool(p.ToolName(), opts...)
-		s.AddTool(tool, createHandler(s, p))
+		s.AddTool(tool, createHandler(s, p, audioEngine))
 	}
 
 	// Register unified Persona Tool if any exist
@@ -67,25 +70,25 @@ func Start() {
 			mcp.WithString("persona", mcp.Required(), mcp.Description("The loaded character persona to invoke."), mcp.Enum(personaManager.GetOptions()...)),
 			mcp.WithString("text", mcp.Required(), mcp.Description("The text for the character to say.")),
 		)
-		s.AddTool(personaTool, createPersonaHandler(s, personaManager, providerList))
+		s.AddTool(personaTool, createPersonaHandler(s, personaManager, providerList, audioEngine))
 	}
 
 	// Register IDE Persona Generator Tool
 	generatorTool := mcp.NewTool("create_persona",
 		mcp.WithDescription("Creates and hot-loads a new character persona bound to a specific TTS provider and voice ID directly into the file system. Use this to permanently register voices."),
-		mcp.WithString("name", mcp.Required(), mcp.Description("The precise single-word formal name of the character (e.g., 'Geralt').")),
+		mcp.WithString("name", mcp.Required(), mcp.Description("The precise single-word formal name of the character (e.g., 'Megumin').")),
 		mcp.WithString("trope", mcp.Required(), mcp.Description("A brief semantic description of their personality or vocal trope (e.g., 'gruff medieval narrator').")),
 		mcp.WithString("provider", mcp.Required(), mcp.Description("The exact ToolName of the underlying TTS provider (e.g., 'fishaudio_tts', 'elevenlabs_tts').")),
 		mcp.WithString("voice_id", mcp.Required(), mcp.Description("The exact hex or UUID string natively mapping to the provider's specific voice model.")),
 	)
-	s.AddTool(generatorTool, createPersonaGeneratorHandler(personaManager))
+	s.AddTool(generatorTool, createPersonaGeneratorHandler(s, personaManager))
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 	}
 }
 
-func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func createHandler(s *server.MCPServer, provider providers.Provider, audioEngine *audio.AudioEngine) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -108,7 +111,7 @@ func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx co
 		}
 
 		// Inject the entire Argument footprint into Context so polymorphic providers can extract custom mappings
-		ctx = context.WithValue(ctx, "options", args)
+		ctx = context.WithValue(ctx, providers.OptionsKey, args)
 
 		// 1. Connect the read closer explicitly capturing the HTTP payload as it downloads
 		respBody, err := provider.StreamSpeech(ctx, text, voiceID)
@@ -175,7 +178,7 @@ func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx co
 		// 5. Stream sequence locking
 		audioComplete := make(chan error, 1)
 		go func() {
-			audioComplete <- audio.WaitAndPlay(streamer, format.SampleRate, reporter)
+			audioComplete <- audioEngine.WaitAndPlay(streamer, format.SampleRate, reporter)
 		}()
 
 		// 4. Thread-lock the active response on the active OS block waiting for ctx.Done internally!
@@ -187,13 +190,13 @@ func createHandler(s *server.MCPServer, provider providers.Provider) func(ctx co
 			return mcp.NewToolResultText(fmt.Sprintf("Successfully generated natively and played speech aloud to the user using %s!\nSaved localized version at: %s", provider.ToolName(), absPath)), nil
 
 		case <-ctx.Done():
-			audio.Stop()
+			audioEngine.Stop()
 			return mcp.NewToolResultError("Audio generation forcefully cancelled by user context!"), nil
 		}
 	}
 }
 
-func createPersonaHandler(s *server.MCPServer, mng *personas.Manager, providerList []providers.Provider) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func createPersonaHandler(s *server.MCPServer, mng *personas.Manager, providerList []providers.Provider, audioEngine *audio.AudioEngine) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -244,11 +247,11 @@ func createPersonaHandler(s *server.MCPServer, mng *personas.Manager, providerLi
 		request.Params.Arguments = mappedArgs
 
 		// Delegate directly to the standard handler!
-		return createHandler(s, targetProvider)(ctx, request)
+		return createHandler(s, targetProvider, audioEngine)(ctx, request)
 	}
 }
 
-func createPersonaGeneratorHandler(mng *personas.Manager) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func createPersonaGeneratorHandler(s *server.MCPServer, mng *personas.Manager) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args, ok := request.Params.Arguments.(map[string]interface{})
 		if !ok {
@@ -277,6 +280,10 @@ func createPersonaGeneratorHandler(mng *personas.Manager) func(ctx context.Conte
 
 		successMsg := fmt.Sprintf("Successfully generated and hot-loaded new persona: '%s' (%s) bound to %s via Voice ID: %s",
 			p.Name, p.Trope, p.Provider, p.VoiceID)
+
+		// Fire an autonomous ghost tool ping updating IDE instances dynamically 
+		s.SendNotificationToAllClients("notifications/tools/list_changed", nil)
+
 		return mcp.NewToolResultText(successMsg), nil
 	}
 }

@@ -9,45 +9,49 @@ import (
 	"github.com/gopxl/beep/v2/speaker"
 )
 
-var (
-	speakerInitOnce   sync.Once
-	speakerInitErr    error
-	speakerSampleRate beep.SampleRate
-	TTSMutex          sync.Mutex // Global mutex preventing simultaneous overlapping audio playback
-)
-
-// initSpeaker initializes the speaker exactly once per process execution.
-// Resampling prevents driver context teardowns.
-func initSpeaker(sampleRate beep.SampleRate) error {
-	speakerInitOnce.Do(func() {
-		speakerSampleRate = sampleRate
-		speakerInitErr = speaker.Init(sampleRate, sampleRate.N(time.Second/10))
-	})
-	return speakerInitErr
+// AudioEngine encapsulates isolated audio stream context, eliminating
+// the old package-level global deadlocks preventing multi-device routing scaling.
+type AudioEngine struct {
+	mu           sync.Mutex
+	initOnce     sync.Once
+	initErr      error
+	sampleRate   beep.SampleRate
 }
 
-// resampleToSpeaker matches the input stream rate to the global speaker dynamically lock.
-func resampleToSpeaker(streamer beep.Streamer, from beep.SampleRate) beep.Streamer {
-	if speakerSampleRate == 0 || from == speakerSampleRate {
+// NewEngine safely invokes a completely separated driver tracking state.
+func NewEngine() *AudioEngine {
+	return &AudioEngine{}
+}
+
+// initSpeaker initializes the localized beep loop mapping to standard default speaker.
+func (e *AudioEngine) initSpeaker(sampleRate beep.SampleRate) error {
+	e.initOnce.Do(func() {
+		e.sampleRate = sampleRate
+		e.initErr = speaker.Init(sampleRate, sampleRate.N(time.Second/10))
+	})
+	return e.initErr
+}
+
+// resampleToSpeaker buffers the playback sample mapping correctly to localized frequency execution paths.
+func (e *AudioEngine) resampleToSpeaker(streamer beep.Streamer, from beep.SampleRate) beep.Streamer {
+	if e.sampleRate == 0 || from == e.sampleRate {
 		return streamer
 	}
-	return beep.Resample(4, from, speakerSampleRate, streamer)
+	return beep.Resample(4, from, e.sampleRate, streamer)
 }
 
-// WaitAndPlay reads the decoded audio stream dynamically into the hardware speaker blocking until complete.
-func WaitAndPlay(stream beep.StreamSeeker, originalRate beep.SampleRate, reporter func(pos int, total int, message string)) error {
-	// Acquire sequence lock exactly like blacktop/mcp-tts to prevent concurrent waifus shouting over each other.
-	TTSMutex.Lock()
-	defer TTSMutex.Unlock()
+// WaitAndPlay blocks actively listening on localized mutex pointer until speaker hardware explicitly succeeds sequence execution.
+func (e *AudioEngine) WaitAndPlay(stream beep.StreamSeeker, originalRate beep.SampleRate, reporter func(pos int, total int, message string)) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
-	if err := initSpeaker(originalRate); err != nil {
+	if err := e.initSpeaker(originalRate); err != nil {
 		return fmt.Errorf("failed to init speaker driver: %v", err)
 	}
 
-	playback := resampleToSpeaker(stream, originalRate)
+	playback := e.resampleToSpeaker(stream, originalRate)
 	done := make(chan bool, 1)
 
-	// Spin up telemetry reporter if a callback was injected
 	if reporter != nil {
 		go func() {
 			ticker := time.NewTicker(250 * time.Millisecond)
@@ -55,15 +59,13 @@ func WaitAndPlay(stream beep.StreamSeeker, originalRate beep.SampleRate, reporte
 			for {
 				select {
 				case <-done:
-					// Signal received, gracefully stop telemetry
 					return
 				case <-ticker.C:
-					// Total length is often -1 (unknown) for HTTP mp3 streams
 					total := stream.Len()
 					pos := stream.Position()
 					msg := fmt.Sprintf("Playing: %.1fs", float64(pos)/float64(originalRate))
 					if total > 0 {
-					    msg = fmt.Sprintf("Playing: %.1fs / %.1fs", float64(pos)/float64(originalRate), float64(total)/float64(originalRate))
+						msg = fmt.Sprintf("Playing: %.1fs / %.1fs", float64(pos)/float64(originalRate), float64(total)/float64(originalRate))
 					}
 					reporter(pos, total, msg)
 				}
@@ -71,7 +73,6 @@ func WaitAndPlay(stream beep.StreamSeeker, originalRate beep.SampleRate, reporte
 		}()
 	}
 
-	// Inject sequence callback to block thread via channel exactly like blacktop/mcp-tts
 	speaker.Play(beep.Seq(playback, beep.Callback(func() {
 		done <- true
 	})))
@@ -80,7 +81,7 @@ func WaitAndPlay(stream beep.StreamSeeker, originalRate beep.SampleRate, reporte
 	return nil
 }
 
-// Stop executes immediate explicit silence over the speaker hardware dropping active buffers
-func Stop() {
+// Stop sends instantaneous silence bytes to speaker buffer directly wiping hardware stream locking buffers
+func (e *AudioEngine) Stop() {
 	speaker.Clear()
 }
