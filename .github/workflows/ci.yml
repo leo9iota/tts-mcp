@@ -1,0 +1,43 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Framework
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+
+      - name: Verify Module Dependency Integrity
+        run: |
+          go mod verify
+          go mod download
+
+      - name: Run GolangCI-Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+      - name: Execute Bounds Test Coverage
+        # Bound exactly against TEST-001 ensuring AudioEngine pointer isolation survives CI constraints
+        run: go test ./... -v
+
+      - name: Assert Structural Binary Build
+        # Confirms the compiler securely generates native objects without missing linkers
+        run: go build -v ./cmd/tts-mcp
