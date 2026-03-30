@@ -13,7 +13,10 @@ func WriteEnvFile(cfg *SetupConfig) error {
 		return err
 	}
 
-	envPath := filepath.Join(cwd, ".env")
+	dataDir := filepath.Join(cwd, "data")
+	_ = os.MkdirAll(dataDir, 0o755)
+	
+	envPath := filepath.Join(dataDir, ".env")
 
 	// 1. Parse existing .env explicitly retaining mapping
 	envMap := make(map[string]string)

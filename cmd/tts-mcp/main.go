@@ -15,10 +15,13 @@ func main() {
 	// (e.g., when the MCP Inspector or Claude runs it from an arbitrary temp path).
 	if exePath, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exePath)
-		_ = godotenv.Load(filepath.Join(exeDir, ".env"))       // Check alongside binary
-		_ = godotenv.Load(filepath.Join(exeDir, "..", ".env")) // Check project root
+		_ = godotenv.Load(filepath.Join(exeDir, "data", ".env"))       // Unified inside bin/data
+		_ = godotenv.Load(filepath.Join(exeDir, "..", "data", ".env")) // Unified inside proj root
+		_ = godotenv.Load(filepath.Join(exeDir, ".env"))               // Check alongside binary
+		_ = godotenv.Load(filepath.Join(exeDir, "..", ".env"))         // Check project root
 	}
-	// Fallback to Current Working Directory
+	// Fallback to Current Working Directory Unified and Standard
+	_ = godotenv.Load(filepath.Join("data", ".env"))
 	_ = godotenv.Load()
 
 	// Begin the STDIO processing loop
