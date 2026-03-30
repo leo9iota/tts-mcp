@@ -43,7 +43,7 @@ func (p *CartesiaProvider) ToolName() string {
 }
 
 func (p *CartesiaProvider) Description() string {
-	return "Generates ultra-low latency, expressive speech using Cartesia Sonic."
+	return "Generate ultra-low latency, expressive speech using Cartesia Sonic."
 }
 
 func (p *CartesiaProvider) ToolArguments() []mcp.ToolOption {

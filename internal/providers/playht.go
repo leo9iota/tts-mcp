@@ -33,7 +33,7 @@ func (p *PlayHTProvider) ToolName() string {
 }
 
 func (p *PlayHTProvider) Description() string {
-	return "Generates highly expressive and cloneable voice outputs using PlayHT."
+	return "Generate highly expressive voice formats using the PlayHT API."
 }
 
 func (p *PlayHTProvider) ToolArguments() []mcp.ToolOption {

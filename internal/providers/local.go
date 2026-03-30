@@ -33,7 +33,7 @@ func (p *LocalProvider) ToolName() string {
 }
 
 func (p *LocalProvider) Description() string {
-	return "Generates speech using a locally hosted or open-source OpenAI-compatible TTS engine (e.g. Kokoro)."
+	return "Generate speech using a locally hosted or open-source OpenAI-compatible TTS engine."
 }
 
 func (p *LocalProvider) ToolArguments() []mcp.ToolOption {

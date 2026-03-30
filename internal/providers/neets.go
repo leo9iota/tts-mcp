@@ -32,7 +32,7 @@ func (p *NeetsProvider) ToolName() string {
 }
 
 func (p *NeetsProvider) Description() string {
-	return "Generates ultra-cheap, highly realistic TTS using the Neets.ai REST API."
+	return "Generate highly realistic text-to-speech using the Neets.ai REST API."
 }
 
 func (p *NeetsProvider) ToolArguments() []mcp.ToolOption {

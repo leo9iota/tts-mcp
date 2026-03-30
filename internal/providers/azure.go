@@ -24,7 +24,7 @@ func (p *AzureProvider) ToolName() string {
 }
 
 func (p *AzureProvider) Description() string {
-	return "Generates highly reliable, enterprise-grade neural speech via Microsoft Azure Cognitive Services."
+	return "Generate highly reliable, enterprise-grade neural speech via Microsoft Azure Cognitive Services."
 }
 
 func (p *AzureProvider) ToolArguments() []mcp.ToolOption {

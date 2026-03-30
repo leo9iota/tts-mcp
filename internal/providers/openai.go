@@ -33,7 +33,7 @@ func (p *OpenAIProvider) ToolName() string {
 }
 
 func (p *OpenAIProvider) Description() string {
-	return "Generates state-of-the-art conversational speech via OpenAI's TTS API."
+	return "Generate state-of-the-art conversational speech via the OpenAI TTS API."
 }
 
 func (p *OpenAIProvider) ToolArguments() []mcp.ToolOption {

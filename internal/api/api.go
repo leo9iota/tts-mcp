@@ -67,7 +67,7 @@ func Start() {
 	// Register unified Persona Tool if any exist
 	if len(personaManager.GetOptions()) > 0 && personaManager.GetOptions()[0] != "" {
 		personaTool := mcp.NewTool("speak_as_persona",
-			mcp.WithDescription("Summon a specific character persona from the locally configured data/ directories. This abstracts the TTS backend and dynamically binds voices for seamless testing."),
+			mcp.WithDescription("Invoke a specific character persona from the locally configured directories. Abstracts the TTS backend and dynamically binds voices for seamless testing."),
 			mcp.WithString("persona", mcp.Required(), mcp.Description("The loaded character persona to invoke."), mcp.Enum(personaManager.GetOptions()...)),
 			mcp.WithString("text", mcp.Required(), mcp.Description("The text for the character to say.")),
 		)
@@ -76,7 +76,7 @@ func Start() {
 
 	// Register IDE Persona Generator Tool
 	generatorTool := mcp.NewTool("create_persona",
-		mcp.WithDescription("Creates and hot-loads a new character persona bound to a specific TTS provider and voice ID directly into the file system. Use this to permanently register voices."),
+		mcp.WithDescription("Create and load a new persona configuration bound to a specific TTS provider and voice ID. Registers the configuration into the file system for persistent availability."),
 		mcp.WithString("name", mcp.Required(), mcp.Description("The precise single-word formal name of the character (e.g., 'Megumin').")),
 		mcp.WithString("trope", mcp.Required(), mcp.Description("A brief semantic description of their personality or vocal trope (e.g., 'gruff medieval narrator').")),
 		mcp.WithString("provider", mcp.Required(), mcp.Description("The exact ToolName of the underlying TTS provider (e.g., 'fishaudio_tts', 'elevenlabs_tts').")),

@@ -33,7 +33,7 @@ func (p *FishAudioProvider) ToolName() string {
 }
 
 func (p *FishAudioProvider) Description() string {
-	return "Generates anime-style expressive TTS via Fish Audio REST API. Extremely fast, low latency, stylized WAIFU/anime voices."
+	return "Generate high-fidelity expressive TTS via the Fish Audio REST API. Optimized for rapid, low-latency conversational audio generation."
 }
 
 func (p *FishAudioProvider) ToolArguments() []mcp.ToolOption {
