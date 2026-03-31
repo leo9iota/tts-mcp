@@ -25,12 +25,12 @@ func RunPersonaWizard() {
 			huh.NewGroup(
 				huh.NewSelect[string]().
 					Title("Persona Management").
-					Description("Manage your dynamic character profiles in " + mng.PersonasDir).
+					Description("Manage your dynamic character profiles in "+mng.PersonasDir).
 					Options(
-						huh.NewOption("List Personas", "LIST"),
 						huh.NewOption("Create New Persona", "CREATE"),
 						huh.NewOption("Edit Persona", "EDIT"),
 						huh.NewOption("Delete Persona", "DELETE"),
+						huh.NewOption("List Personas", "LIST"),
 						huh.NewOption("Return to Main Menu", "BACK"),
 					).
 					Value(&action),
@@ -42,8 +42,6 @@ func RunPersonaWizard() {
 		}
 
 		switch action {
-		case "LIST":
-			listPersonas(mng)
 		case "CREATE":
 			createPersona(mng, nil)
 		case "EDIT":
@@ -56,6 +54,8 @@ func RunPersonaWizard() {
 			if ok {
 				deletePersona(mng, p)
 			}
+		case "LIST":
+			listPersonas(mng)
 		}
 	}
 }
@@ -66,19 +66,33 @@ func listPersonas(mng *personas.Manager) {
 		PrintInfo("No personas found.")
 		return
 	}
-	
+
 	var listStyle = lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#61afef")).
 		Padding(1, 4).MarginTop(1).MarginBottom(1)
-		
+
 	var content strings.Builder
-	content.WriteString("Installed Personas:\n")
+	content.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#e5c07b")).Render("Installed Personas:") + "\n\n")
+
+	nameStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#61afef")).Bold(true)
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#5c6370")).Width(10)
+	valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#abb2bf"))
+
 	for _, o := range opts {
 		p, _ := mng.GetPersona(o)
-		content.WriteString(fmt.Sprintf("\n- %s (%s) => %s / %s", p.Name, p.Trope, p.Provider, p.VoiceID))
+
+		content.WriteString(icon("\uf2bd ", "• ") + nameStyle.Render(p.Name) + "\n")
+
+		if p.Trope != "" {
+			content.WriteString("  " + labelStyle.Render("Trope:") + valueStyle.Render(p.Trope) + "\n")
+		}
+
+		content.WriteString("  " + labelStyle.Render("Provider:") + valueStyle.Render(p.Provider) + "\n")
+		content.WriteString("  " + labelStyle.Render("Voice ID:") + valueStyle.Render(p.VoiceID) + "\n\n")
 	}
-	fmt.Println(listStyle.Render(content.String()))
+
+	fmt.Println(listStyle.Render(strings.TrimSuffix(content.String(), "\n\n")))
 }
 
 func selectPersona(mng *personas.Manager, action string) (personas.Persona, bool) {
@@ -126,7 +140,7 @@ func deletePersona(mng *personas.Manager, p personas.Persona) {
 		return
 	}
 
-	fileName := strings.ToLower(strings.ReplaceAll(p.Name, " ", "_")) + ".json"
+	fileName := strings.ToLower(strings.ReplaceAll(p.Name, " ", "_")) + ".toml"
 	path := filepath.Join(mng.PersonasDir, fileName)
 
 	if err := os.Remove(path); err != nil {
@@ -189,7 +203,7 @@ func createPersona(mng *personas.Manager, existing *personas.Persona) {
 
 	var b strings.Builder
 	b.WriteString(icon("\uf00c ", "") + fmt.Sprintf("Persona '%s' saved successfully!\n\n", p.Name))
-	b.WriteString(fmt.Sprintf("{\n  \"name\": \"%s\",\n  \"trope\": \"%s\",\n  \"provider\": \"%s\",\n  \"voice_id\": \"%s\"\n}", p.Name, p.Trope, p.Provider, p.VoiceID))
+	b.WriteString(fmt.Sprintf("name = \"%s\"\ntrope = \"%s\"\nprovider = \"%s\"\nvoice_id = \"%s\"", p.Name, p.Trope, p.Provider, p.VoiceID))
 
 	fmt.Println(finishStyle.Render(b.String()))
 }

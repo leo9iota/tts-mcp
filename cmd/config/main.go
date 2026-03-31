@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"os"
+	"path/filepath"
 )
 
 type SetupConfig struct {
@@ -109,33 +109,33 @@ func RunEnvWizard() {
 		groups = append(groups, huh.NewGroup(
 			huh.NewInput().Title("OpenAI API Key (sk-...)").EchoMode(huh.EchoModePassword).Value(&cfg.OpenAIKey),
 		))
-		case "ELEVENLABS":
-			groups = append(groups, huh.NewGroup(
-				huh.NewInput().Title("ElevenLabs API Key").EchoMode(huh.EchoModePassword).Value(&cfg.ElevenLabsKey),
-			))
-		case "FISH_AUDIO":
-			groups = append(groups, huh.NewGroup(
-				huh.NewInput().Title("Fish Audio API Key").EchoMode(huh.EchoModePassword).Value(&cfg.FishAudioKey),
-			))
-		case "CARTESIA":
-			groups = append(groups, huh.NewGroup(
-				huh.NewInput().Title("Cartesia API Key").EchoMode(huh.EchoModePassword).Value(&cfg.CartesiaKey),
-			))
-		case "NEETS":
-			groups = append(groups, huh.NewGroup(
-				huh.NewInput().Title("Neets API Key").EchoMode(huh.EchoModePassword).Value(&cfg.NeetsKey),
-			))
-		case "PLAYHT":
-			groups = append(groups, huh.NewGroup(
-				huh.NewInput().Title("PlayHT API Key").EchoMode(huh.EchoModePassword).Value(&cfg.PlayHTKey),
-				huh.NewInput().Title("PlayHT User ID").EchoMode(huh.EchoModePassword).Value(&cfg.PlayHTUser),
-			))
-		case "AZURE":
-			groups = append(groups, huh.NewGroup(
-				huh.NewInput().Title("Azure Speech Key").EchoMode(huh.EchoModePassword).Value(&cfg.AzureKey),
-				huh.NewInput().Title("Azure Region (e.g. eastus)").Value(&cfg.AzureRegion),
-			))
-		case "LOCAL":
+	case "ELEVENLABS":
+		groups = append(groups, huh.NewGroup(
+			huh.NewInput().Title("ElevenLabs API Key").EchoMode(huh.EchoModePassword).Value(&cfg.ElevenLabsKey),
+		))
+	case "FISH_AUDIO":
+		groups = append(groups, huh.NewGroup(
+			huh.NewInput().Title("Fish Audio API Key").EchoMode(huh.EchoModePassword).Value(&cfg.FishAudioKey),
+		))
+	case "CARTESIA":
+		groups = append(groups, huh.NewGroup(
+			huh.NewInput().Title("Cartesia API Key").EchoMode(huh.EchoModePassword).Value(&cfg.CartesiaKey),
+		))
+	case "NEETS":
+		groups = append(groups, huh.NewGroup(
+			huh.NewInput().Title("Neets API Key").EchoMode(huh.EchoModePassword).Value(&cfg.NeetsKey),
+		))
+	case "PLAYHT":
+		groups = append(groups, huh.NewGroup(
+			huh.NewInput().Title("PlayHT API Key").EchoMode(huh.EchoModePassword).Value(&cfg.PlayHTKey),
+			huh.NewInput().Title("PlayHT User ID").EchoMode(huh.EchoModePassword).Value(&cfg.PlayHTUser),
+		))
+	case "AZURE":
+		groups = append(groups, huh.NewGroup(
+			huh.NewInput().Title("Azure Speech Key").EchoMode(huh.EchoModePassword).Value(&cfg.AzureKey),
+			huh.NewInput().Title("Azure Region (e.g. eastus)").Value(&cfg.AzureRegion),
+		))
+	case "LOCAL":
 		groups = append(groups, huh.NewGroup(
 			huh.NewInput().Title("Local TTS Endpoint URL").Value(&cfg.LocalEndpoint),
 		))
@@ -167,12 +167,12 @@ func RunEnvWizard() {
 		Padding(1, 4).
 		MarginTop(1).
 		MarginBottom(1)
-		
+
 	cwd, _ := os.Getwd()
 	content := icon("\uf00c ", "") + "Configuration Saved Successfully!\n\n"
 	content += fmt.Sprintf("Your environment configuration was automatically localized inside the data folder:\n%s\n\n", filepath.Join(cwd, "data", ".env"))
 	content += "You can connect this MCP server via standard stdio:\n"
 	content += "[\"go\", \"run\", \".\"]"
-	
+
 	fmt.Println(infoStyle.Render(content))
 }

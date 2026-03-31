@@ -1,10 +1,11 @@
 package personas
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 func TestManager_SavePersona(t *testing.T) {
@@ -50,7 +51,7 @@ func TestManager_SavePersona(t *testing.T) {
 	}
 
 	// fileName is dynamically slugged by `strings.ToLower(strings.ReplaceAll(...)`
-	expectedFileName := "test_waifu.json"
+	expectedFileName := "test_waifu.toml"
 	if files[0].Name() != expectedFileName {
 		t.Errorf("Expected filename '%s', got '%s'", expectedFileName, files[0].Name())
 	}
@@ -58,7 +59,7 @@ func TestManager_SavePersona(t *testing.T) {
 	// 5. Assert: Verify the written byte blocks didn't drop nested maps like 'options' due to structural marshaling drift
 	fileBytes, _ := os.ReadFile(filepath.Join(tempDir, expectedFileName))
 	var unmarshaled Persona
-	if err := json.Unmarshal(fileBytes, &unmarshaled); err != nil {
+	if err := toml.Unmarshal(fileBytes, &unmarshaled); err != nil {
 		t.Fatalf("Failed to unpack the newly minted generic artifact structurally: %v", err)
 	}
 

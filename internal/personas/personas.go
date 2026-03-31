@@ -6,14 +6,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 type Persona struct {
-	Name     string                 `json:"name"`
-	Trope    string                 `json:"trope"`
-	Provider string                 `json:"provider"`
-	VoiceID  string                 `json:"voice_id"`
-	Options  map[string]interface{} `json:"options,omitempty"`
+	Name     string                 `json:"name" toml:"name"`
+	Trope    string                 `json:"trope" toml:"trope"`
+	Provider string                 `json:"provider" toml:"provider"`
+	VoiceID  string                 `json:"voice_id" toml:"voice_id"`
+	Options  map[string]interface{} `json:"options,omitempty" toml:"options,omitempty"`
 }
 
 type Manager struct {
@@ -59,25 +61,53 @@ func NewManager() (*Manager, error) {
 	}
 
 	for _, file := range files {
-		if file.IsDir() || filepath.Ext(file.Name()) != ".json" {
+		if file.IsDir() {
 			continue
 		}
 
+		ext := filepath.Ext(file.Name())
 		path := filepath.Join(personasDir, file.Name())
-		data, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading persona %s: %v\n", path, err)
+
+		if ext == ".json" {
+			// Phase 4: Auto-migrate legacy JSON to TOML
+			data, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading legacy persona %s: %v\n", path, err)
+				continue
+			}
+
+			var p Persona
+			if err := json.Unmarshal(data, &p); err != nil {
+				fmt.Fprintf(os.Stderr, "Error parsing legacy persona %s: %v\n", path, err)
+				continue
+			}
+
+			if p.Name != "" {
+				if err := m.SavePersona(p); err != nil {
+					fmt.Fprintf(os.Stderr, "Error migrating persona %s to TOML: %v\n", p.Name, err)
+				} else {
+					os.Remove(path) // Seamlessly clean up old JSON
+				}
+			}
 			continue
 		}
 
-		var p Persona
-		if err := json.Unmarshal(data, &p); err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing persona %s: %v\n", path, err)
-			continue
-		}
+		if ext == ".toml" {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading persona %s: %v\n", path, err)
+				continue
+			}
 
-		if p.Name != "" {
-			m.Personas[p.Name] = p
+			var p Persona
+			if err := toml.Unmarshal(data, &p); err != nil {
+				fmt.Fprintf(os.Stderr, "Error parsing persona %s: %v\n", path, err)
+				continue
+			}
+
+			if p.Name != "" {
+				m.Personas[p.Name] = p
+			}
 		}
 	}
 
@@ -107,10 +137,10 @@ func (m *Manager) SavePersona(p Persona) error {
 		return fmt.Errorf("persona must have a valid name")
 	}
 
-	fileName := strings.ToLower(strings.ReplaceAll(p.Name, " ", "_")) + ".json"
+	fileName := strings.ToLower(strings.ReplaceAll(p.Name, " ", "_")) + ".toml"
 	path := filepath.Join(m.PersonasDir, fileName)
 
-	bytes, err := json.MarshalIndent(p, "", "  ")
+	bytes, err := toml.Marshal(p)
 	if err != nil {
 		return fmt.Errorf("failed to marshal persona: %w", err)
 	}
