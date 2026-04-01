@@ -6,37 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"tts-mcp/internal/config"
 )
 
 // GenerateOutputFile dynamically constructs a guaranteed unique artifact file inside the outputs/ directory.
-// It anchors relative to the 'data' directory to ensure stable production/binary deployments.
+// It anchors relative to the global OS user cache directory to ensure stable production/binary deployments.
 func GenerateOutputFile(personaName, providerName string) (*os.File, string, error) {
-	searchDirs := []string{"."}
-
-	if exePath, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exePath)
-		// Check typical project root layout vs bin runtime execution pathing
-		searchDirs = append([]string{filepath.Join(exeDir, ".."), exeDir}, searchDirs...)
-	}
-
-	var rootDir string
-	for _, sDir := range searchDirs {
-		candidate := filepath.Join(sDir, "data")
-		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
-			rootDir = sDir
-			break
-		}
-	}
-
-	if rootDir == "" {
-		rootDir = "." // Absolute fallback to CWD
-	}
-
-	// Explicitly nest inside the data/ folder alongside personas/
-	outputsDir := filepath.Join(rootDir, "data", "output")
-	if err := os.MkdirAll(outputsDir, 0o755); err != nil {
-		return nil, "", fmt.Errorf("failed to create output directory: %w", err)
-	}
+	outputsDir := config.GetCacheDir()
 
 	// Formatting logic (FEAT-002)
 	prefix := personaName

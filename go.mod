@@ -8,6 +8,7 @@ require (
 	github.com/gopxl/beep/v2 v2.1.1
 	github.com/joho/godotenv v1.5.1
 	github.com/mark3labs/mcp-go v0.46.0
+	github.com/pelletier/go-toml/v2 v2.3.0
 )
 
 require (
@@ -36,7 +37,6 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/cast v1.7.1 // indirect

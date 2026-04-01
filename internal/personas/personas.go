@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
+
+	"tts-mcp/internal/config"
 )
 
 type Persona struct {
@@ -28,31 +30,7 @@ func NewManager() (*Manager, error) {
 		Personas: make(map[string]Persona),
 	}
 
-	searchDirs := []string{"."}
-
-	if exePath, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exePath)
-		// Typically run via 'go run .' or compiled to 'bin/', so test both project root fallbacks
-		searchDirs = append([]string{filepath.Join(exeDir, ".."), exeDir}, searchDirs...)
-	}
-
-	var personasDir string
-	for _, sDir := range searchDirs {
-		candidate := filepath.Join(sDir, "data")
-		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
-			personasDir = candidate
-			break
-		}
-	}
-
-	if personasDir == "" {
-		// Fallback: create it in the CWD if none exists in typical places
-		personasDir = filepath.Join(".", "data")
-		if err := os.MkdirAll(personasDir, 0o755); err != nil {
-			return nil, fmt.Errorf("failed to create data directory: %w", err)
-		}
-	}
-
+	personasDir := config.GetPersonasDir()
 	m.PersonasDir = personasDir
 
 	files, err := os.ReadDir(personasDir)

@@ -3,20 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"tts-mcp/internal/config"
 )
 
 func WriteEnvFile(cfg *SetupConfig) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	dataDir := filepath.Join(cwd, "data")
-	_ = os.MkdirAll(dataDir, 0o755)
-
-	envPath := filepath.Join(dataDir, ".env")
+	envPath := config.GetEnvPath()
 
 	// 1. Parse existing .env explicitly retaining mapping
 	envMap := make(map[string]string)
@@ -33,7 +26,7 @@ func WriteEnvFile(cfg *SetupConfig) error {
 			}
 		}
 
-		_ = os.WriteFile(envPath+".bak", data, 0644)
+		_ = os.WriteFile(envPath+".bak", data, 0600)
 	}
 
 	switch cfg.SelectedProvider {
@@ -57,7 +50,7 @@ func WriteEnvFile(cfg *SetupConfig) error {
 		envMap["LOCAL_TTS_ENDPOINT"] = cfg.LocalEndpoint
 	}
 
-	f, err := os.Create(envPath)
+	f, err := os.OpenFile(envPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
