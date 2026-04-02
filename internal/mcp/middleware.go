@@ -3,8 +3,8 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/charmbracelet/log"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -15,7 +15,7 @@ func WithRecovery(handler func(ctx context.Context, request mcp.CallToolRequest)
 	return func(ctx context.Context, request mcp.CallToolRequest) (res *mcp.CallToolResult, err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("Recovered from panic in tool execution: %v\n", r)
+				log.Error("Recovered from panic in tool execution", "panic", r)
 
 				// Ensure the JSON-RPC response conveys the error without killing the underlying IO pipe
 				errMsg := fmt.Sprintf("Internal Server Error: Panic recovered during tool execution: %v", r)

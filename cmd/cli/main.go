@@ -37,6 +37,9 @@ func main() {
 	for {
 		fmt.Println(headerStyle.Render(icon("\uf130 ", "") + "Welcome to the tts-mcp Configuration Wizard!"))
 
+		pathStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#5c6370")).MarginBottom(1)
+		fmt.Println(pathStyle.Render("Configuration directory: " + config.GetAppConfigDir()))
+
 		var action string
 		err := huh.NewForm(
 			huh.NewGroup(

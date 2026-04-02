@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/gopxl/beep/v2/mp3"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -85,7 +86,7 @@ func Start() {
 	s.AddTool(generatorTool, WithRecovery(createPersonaGeneratorHandler(s, personaManager)))
 
 	if err := server.ServeStdio(s); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+		log.Error("Server error", "err", err)
 	}
 }
 
