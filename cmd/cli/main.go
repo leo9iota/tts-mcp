@@ -39,6 +39,7 @@ func main() {
 
 		pathStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#5c6370")).MarginBottom(1)
 		fmt.Println(pathStyle.Render("Configuration directory: " + config.GetAppConfigDir()))
+		fmt.Println(pathStyle.Render("Audio Outputs directory: " + config.GetCacheDir()))
 
 		var action string
 		err := huh.NewForm(
