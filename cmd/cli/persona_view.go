@@ -172,8 +172,8 @@ func createPersona(mng *personas.Manager, existing *personas.Persona) {
 
 	err := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Persona Name (e.g., GLaDOS)").Value(&p.Name),
-			huh.NewInput().Title("Vocal Trope Context (e.g., Sarcastic AI)").Value(&p.Trope),
+			huh.NewInput().Title("Persona Name (example: GLaDOS)").Value(&p.Name),
+			huh.NewInput().Title("Vocal Trope Context (example: Sarcastic AI)").Value(&p.Trope),
 			huh.NewSelect[string]().Title("Backing Provider").Options(providerOptions...).Value(&p.Provider),
 			huh.NewInput().Title("Explicit Voice UUID/Hex").Value(&p.VoiceID),
 		),
