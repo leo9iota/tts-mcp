@@ -50,7 +50,6 @@ func createPersona(mng *personas.Manager, existing *personas.Persona) {
 			huh.NewInput().Title("Volume Multiplier (1.0 = Default, 0.5 = 50%)").Value(&volumeStr),
 		),
 	).WithTheme(OneDarkTheme()).Run()
-
 	if err != nil {
 		PrintWarning("Persona configuration cancelled.")
 		return
@@ -76,7 +75,7 @@ func createPersona(mng *personas.Manager, existing *personas.Persona) {
 		return
 	}
 
-	var finishStyle = lipgloss.NewStyle().
+	finishStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#98c379")).
 		Padding(1, 4).
@@ -85,7 +84,7 @@ func createPersona(mng *personas.Manager, existing *personas.Persona) {
 	var b strings.Builder
 	b.WriteString(icon("\uf00c ", "") + fmt.Sprintf("Persona '%s' saved successfully!\n\n", p.Name))
 	b.WriteString(fmt.Sprintf("name = \"%s\"\ntrope = \"%s\"\nprovider = \"%s\"\nvoice_id = \"%s\"", p.Name, p.Trope, p.Provider, p.VoiceID))
-	
+
 	if volumeStr != "" && volumeStr != "1.0" {
 		b.WriteString(fmt.Sprintf("\nvolume = %s", volumeStr))
 	}

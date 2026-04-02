@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
-	"os"
 
 	"tts-mcp/internal/config"
 )
@@ -29,7 +30,7 @@ func main() {
 	flag.BoolVar(&noIcons, "no-icons", false, "Disable Nerd Font icons in the terminal UI")
 	flag.Parse()
 
-	var headerStyle = lipgloss.NewStyle().
+	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#61afef")).
 		MarginBottom(1)
@@ -71,7 +72,6 @@ func main() {
 }
 
 func RunEnvWizard() {
-
 	cfg := &SetupConfig{}
 
 	// 1. Ask which providers
@@ -95,7 +95,6 @@ func RunEnvWizard() {
 				Value(&cfg.SelectedProvider),
 		),
 	).WithTheme(OneDarkTheme()).Run()
-
 	if err != nil {
 		PrintWarning(fmt.Sprintf("Setup cancelled: %v", err))
 		os.Exit(1)
@@ -166,7 +165,7 @@ func RunEnvWizard() {
 		os.Exit(1)
 	}
 
-	var infoStyle = lipgloss.NewStyle().
+	infoStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#98c379")).
 		Padding(1, 4).

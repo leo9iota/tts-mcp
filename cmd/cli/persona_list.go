@@ -16,7 +16,7 @@ func listPersonas(mng *personas.Manager) {
 		return
 	}
 
-	var listStyle = lipgloss.NewStyle().
+	listStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#61afef")).
 		Padding(1, 4).MarginTop(1).MarginBottom(1)
