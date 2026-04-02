@@ -10,22 +10,22 @@ default:
 
 # Build the generic tts-mcp executable for the current host OS
 build: deps
-    go build -o bin/tts-mcp.exe ./cmd/mcp
+    go build -o bin/mcp.exe ./cmd/mcp
     go build -o bin/cli.exe ./cmd/cli
 
 # Build cross-platform binaries (Windows, Linux, macOS)
 build-all: deps
-    GOOS=windows GOARCH=amd64 go build -o bin/tts-mcp-windows-amd64.exe ./cmd/mcp
-    GOOS=linux GOARCH=amd64 go build -o bin/tts-mcp-linux-amd64 ./cmd/mcp
-    GOOS=darwin GOARCH=arm64 go build -o bin/tts-mcp-darwin-arm64 ./cmd/mcp
+    GOOS=windows GOARCH=amd64 go build -o bin/mcp-windows-amd64.exe ./cmd/mcp
+    GOOS=linux GOARCH=amd64 go build -o bin/mcp-linux-amd64 ./cmd/mcp
+    GOOS=darwin GOARCH=arm64 go build -o bin/mcp-darwin-arm64 ./cmd/mcp
 
 # Run the MCP server locally over stdio
 mcp: build
-    ./bin/tts-mcp.exe
+    ./bin/mcp.exe
 
 # Start the MCP inspector to test the server visually
 inspect: build
-    bunx @modelcontextprotocol/inspector ./bin/tts-mcp.exe
+    bunx @modelcontextprotocol/inspector ./bin/mcp.exe
 
 # ==========================================
 # Testing & Linting
