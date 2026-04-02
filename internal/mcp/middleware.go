@@ -13,6 +13,7 @@ import (
 // isn't broken violently upon nil-pointer dereferences or logical panics inside Audio Engine/Providers.
 func WithRecovery(handler func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error)) func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (res *mcp.CallToolResult, err error) {
+		log.Debug("Executing MCP Tool", "tool", request.Params.Name)
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error("Recovered from panic in tool execution", "panic", r)

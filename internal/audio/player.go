@@ -3,10 +3,12 @@ package audio
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/gopxl/beep/v2"
+	"github.com/gopxl/beep/v2/effects"
 	"github.com/gopxl/beep/v2/speaker"
 )
 
@@ -43,7 +45,7 @@ func (e *AudioEngine) resampleToSpeaker(streamer beep.Streamer, from beep.Sample
 }
 
 // WaitAndPlay blocks actively listening on localized mutex pointer until speaker hardware explicitly succeeds sequence execution.
-func (e *AudioEngine) WaitAndPlay(ctx context.Context, stream beep.StreamSeeker, originalRate beep.SampleRate, reporter func(pos int, total int, message string)) error {
+func (e *AudioEngine) WaitAndPlay(ctx context.Context, stream beep.StreamSeeker, originalRate beep.SampleRate, volumeMultiplier float64, reporter func(pos int, total int, message string)) error {
 	e.mu.Lock()
 	e.activeCtx = ctx
 	defer func() {
@@ -55,7 +57,14 @@ func (e *AudioEngine) WaitAndPlay(ctx context.Context, stream beep.StreamSeeker,
 		return fmt.Errorf("failed to init speaker driver: %v", err)
 	}
 
-	playback := e.resampleToSpeaker(stream, originalRate)
+	var playback beep.Streamer = stream
+	if volumeMultiplier <= 0.01 {
+		playback = &effects.Volume{Streamer: stream, Base: 2, Volume: 0, Silent: true}
+	} else if volumeMultiplier != 1.0 {
+		playback = &effects.Volume{Streamer: stream, Base: 2, Volume: math.Log2(volumeMultiplier)}
+	}
+
+	playback = e.resampleToSpeaker(playback, originalRate)
 	done := make(chan bool, 1)
 
 	if reporter != nil {

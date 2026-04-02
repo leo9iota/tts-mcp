@@ -71,6 +71,7 @@ func Start() {
 			mcp.WithDescription("Invoke a specific character persona from the locally configured directories. Abstracts the TTS backend and dynamically binds voices for seamless testing."),
 			mcp.WithString("persona", mcp.Required(), mcp.Description("The loaded character persona to invoke."), mcp.Enum(personaManager.GetOptions()...)),
 			mcp.WithString("text", mcp.Required(), mcp.Description("The text for the character to say.")),
+			mcp.WithNumber("volume", mcp.Description("Optional volume multiplier (e.g. 0.5 for 50%, 2.0 for 200%). Defaults to 1.0.")),
 		)
 		s.AddTool(personaTool, WithRecovery(createPersonaHandler(s, personaManager, providerList, audioEngine)))
 	}
@@ -84,6 +85,11 @@ func Start() {
 		mcp.WithString("voice_id", mcp.Required(), mcp.Description("The exact hex or UUID string natively mapping to the provider's specific voice model.")),
 	)
 	s.AddTool(generatorTool, WithRecovery(createPersonaGeneratorHandler(s, personaManager)))
+
+	log.Info("TTS-MCP Server Initialized \nWaiting for Antigravity IDE JSON-RPC connections via stdio...",
+		"personas_loaded", len(personaManager.Personas),
+		"providers_active", len(providerList),
+	)
 
 	if err := server.ServeStdio(s); err != nil {
 		log.Error("Server error", "err", err)
@@ -110,6 +116,17 @@ func createHandler(s *server.MCPServer, provider providers.Provider, audioEngine
 		var voiceID string
 		if vid, ok := args["voice_id"].(string); ok {
 			voiceID = vid
+		}
+
+		var volume float64 = 1.0
+		if vol, ok := args["volume"].(float64); ok {
+			volume = vol
+		} else if volInt, ok := args["volume"].(int); ok {
+			volume = float64(volInt)
+		} else if volInt, ok := args["volume"].(int32); ok {
+			volume = float64(volInt)
+		} else if volInt, ok := args["volume"].(int64); ok {
+			volume = float64(volInt)
 		}
 
 		// Inject the entire Argument footprint into Context so polymorphic providers can extract custom mappings
@@ -179,7 +196,7 @@ func createHandler(s *server.MCPServer, provider providers.Provider, audioEngine
 		// 5. Stream sequence locking
 		audioComplete := make(chan error, 1)
 		go func() {
-			audioComplete <- audioEngine.WaitAndPlay(ctx, streamer, format.SampleRate, reporter)
+			audioComplete <- audioEngine.WaitAndPlay(ctx, streamer, format.SampleRate, volume, reporter)
 		}()
 
 		// 4. Thread-lock the active response on the active OS block waiting for ctx.Done internally!
@@ -232,6 +249,9 @@ func createPersonaHandler(s *server.MCPServer, mng *personas.Manager, providerLi
 			"text":     args["text"],
 			"voice_id": persona.VoiceID,
 			"persona":  personaName,
+		}
+		if vol, ok := args["volume"]; ok {
+			mappedArgs["volume"] = vol
 		}
 
 		// Phase 2: Tool Argument Hydration (FEAT-003)
