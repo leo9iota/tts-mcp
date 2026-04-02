@@ -10,17 +10,17 @@ default:
 
 # Build the generic tts-mcp executable for the current host OS
 build: deps
-    go build -o bin/tts-mcp.exe ./cmd/tts-mcp
-    go build -o bin/config.exe ./cmd/config
+    go build -o bin/tts-mcp.exe ./cmd/mcp
+    go build -o bin/cli.exe ./cmd/cli
 
 # Build cross-platform binaries (Windows, Linux, macOS)
 build-all: deps
-    GOOS=windows GOARCH=amd64 go build -o bin/tts-mcp-windows-amd64.exe ./cmd/tts-mcp
-    GOOS=linux GOARCH=amd64 go build -o bin/tts-mcp-linux-amd64 ./cmd/tts-mcp
-    GOOS=darwin GOARCH=arm64 go build -o bin/tts-mcp-darwin-arm64 ./cmd/tts-mcp
+    GOOS=windows GOARCH=amd64 go build -o bin/tts-mcp-windows-amd64.exe ./cmd/mcp
+    GOOS=linux GOARCH=amd64 go build -o bin/tts-mcp-linux-amd64 ./cmd/mcp
+    GOOS=darwin GOARCH=arm64 go build -o bin/tts-mcp-darwin-arm64 ./cmd/mcp
 
 # Run the MCP server locally over stdio
-run: build
+mcp: build
     ./bin/tts-mcp.exe
 
 # Start the MCP inspector to test the server visually
@@ -65,12 +65,12 @@ wipe:
     rm -rf bin/
     rm -f temp.wav temp.mp3
 
-# Configure the MCP server API keys interactively
-config: deps
-    go run ./cmd/config
+# Launch the interactive configuration wizard (CLI)
+cli: deps
+    go run ./cmd/cli
 
 # Setup the environment using the configurator (alias mapping)
-setup-env: config
+setup-env: cli
 
 # Initialize a completely fresh developer environment
 init: setup-env deps build

@@ -6,7 +6,8 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"os"
-	"path/filepath"
+
+	"tts-mcp/internal/config"
 )
 
 type SetupConfig struct {
@@ -168,9 +169,8 @@ func RunEnvWizard() {
 		MarginTop(1).
 		MarginBottom(1)
 
-	cwd, _ := os.Getwd()
 	content := icon("\uf00c ", "") + "Configuration Saved Successfully!\n\n"
-	content += fmt.Sprintf("Your environment configuration was automatically localized inside the data folder:\n%s\n\n", filepath.Join(cwd, "data", ".env"))
+	content += fmt.Sprintf("Your environment configuration was automatically localized inside your global OS configuration directory:\n%s\n\n", config.GetEnvPath())
 	content += "You can connect this MCP server via standard stdio:\n"
 	content += "[\"go\", \"run\", \".\"]"
 
