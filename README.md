@@ -1,6 +1,6 @@
-# TTS-MCP: Universal AI Voice Protocol
+# TTS-MCP
 
-Text-to-Speech MCP server bridging dynamic character personas and real-time audio playback natively into Google Antigravity and other MCP-enabled IDEs, such as Cursor and Windsurf.
+A Text-to-Speech MCP server that gives your AI assistant a voice inside editors like Antigravity, Cursor, and Claude Code.
 
 ## Overview
 
@@ -60,7 +60,7 @@ Go to `Settings -> Features -> MCP Servers`. Click `+ Add New MCP Server`.
 - **Type**: command
 - **Command**: `/absolute/path/to/extracted/tts-mcp`
 
-#### Claude Desktop
+#### Claude Code
 
 Open `claude_desktop_config.json` and append:
 
