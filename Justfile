@@ -1,35 +1,31 @@
-set dotenv-load
+set dotenv-load := true
 
 # The default recipe when just is invoked with no arguments
 default:
     @just --list
 
-# ==========================================
-# Build & Execution
-# ==========================================
+## Build + Execution
 
 # Build the generic tts-mcp executable for the current host OS
 build: deps
-    go build -o bin/mcp.exe ./cmd/mcp
-    go build -o bin/cli.exe ./cmd/cli
+    go build -o bin/tts-mcp.exe ./cmd/mcp
+    go build -o bin/tts-mcp-config.exe ./cmd/cli
 
 # Build cross-platform binaries (Windows, Linux, macOS)
 build-all: deps
-    GOOS=windows GOARCH=amd64 go build -o bin/mcp-windows-amd64.exe ./cmd/mcp
-    GOOS=linux GOARCH=amd64 go build -o bin/mcp-linux-amd64 ./cmd/mcp
-    GOOS=darwin GOARCH=arm64 go build -o bin/mcp-darwin-arm64 ./cmd/mcp
+    GOOS=windows GOARCH=amd64 go build -o bin/tts-mcp-windows-amd64.exe ./cmd/mcp
+    GOOS=linux GOARCH=amd64 go build -o bin/tts-mcp-linux-amd64 ./cmd/mcp
+    GOOS=darwin GOARCH=arm64 go build -o bin/tts-mcp-darwin-arm64 ./cmd/mcp
 
 # Run the MCP server locally over stdio
 mcp: build
-    ./bin/mcp.exe
+    ./bin/tts-mcp.exe
 
 # Start the MCP inspector to test the server visually
 inspect: build
-    bunx @modelcontextprotocol/inspector ./bin/mcp.exe
+    bunx @modelcontextprotocol/inspector ./bin/tts-mcp.exe
 
-# ==========================================
-# Testing & Linting
-# ==========================================
+## Testing + Linting
 
 # Run the pure Go test suite
 test:
@@ -51,9 +47,7 @@ format:
 lint: format vet
     @echo "Linting complete."
 
-# ==========================================
-# Maintenance & Utilities
-# ==========================================
+## Utils
 
 # Download modules and clean the go.mod and go.sum files
 deps:
