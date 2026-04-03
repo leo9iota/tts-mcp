@@ -29,10 +29,11 @@ temp.mp3
 *.mp3
 
 # IDEs
+Thumbs.db
+.DS_Store
 .idea/
 .vscode/
+.rgignore
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
