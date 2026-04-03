@@ -1,68 +1,61 @@
-# TTS-MCP
+# tts-mcp
 
-A Text-to-Speech MCP server that gives your AI assistant a voice inside editors like Antigravity, Cursor, and Claude Code.
+MCP server that provides Text-to-Speech capabilities. It accepts text output from LLMs, synthesizes it using remote or local audio providers, and plays it directly through the host system's native speakers.
 
-## Overview
+## Features
 
-TTS-MCP stands for Text-To-Speech Model Context Protocol. It exposes audio engines directly to your IDE. Rather than the AI just typing out text, you can tell the AI to "speak as" a persona, and the plugin will seamlessly synthesize and pipe the audio into your local system speakers, saving the artifact directly to your file system.
+- **Direct Playback**: Pipes synthesized audio to the host system natively.
+- **Provider Aggregation**: Automatically exposes individual command tools for any configured TTS provider (`fishaudio_tts`, `elevenlabs_tts`, etc.).
+- **Persona Routing**: Map specific voices and providers to semantic names to simplify LLM tool calls (`speak_as_persona`).
+- **Caching**: Saves generated audio artifacts locally to an XDG cache directory.
 
 ## Supported Providers
 
-- FishAudio: `fishaudio_tts`
-- ElevenLabs: `elevenlabs_tts`
-- Neets AI: `neets_tts`
-- PlayHT: `playht_tts`
-- Cartesia: `cartesia_tts`:
-- OpenAI: `openai_tts`
-- Azure: `azure_tts`
-- Local API: `local_tts`
+- FishAudio
+- ElevenLabs
+- Neets AI
+- PlayHT
+- Cartesia
+- OpenAI
+- Azure
+- Local APIs
 
-## Setup
+## Installation
 
-### 1. Download Release
+> Requires Go 1.22+ to build from source via `just init`
 
-> If you have Go 1.22+ installed, you can compile from source using `just init`
+Download the pre-compiled binaries matching your OS from the [Releases](https://github.com/leo9iota/tts-mcp/releases) page.
 
-Head over to the GitHub Releases page and download the pre-compiled binary matching your OS. Extract it to a secure location (for example: `C:\mcp\tts-mcp\` or `~/.local/bin/` depending on your OS and config setup).
+## Configuration
 
-### 2. Configure Environment
-
-TTS-MCP reads its API keys from an XDG `.env` file located natively inside your OS's configuration directory:
+`tts-mcp` requires an `.env` file in your standard OS configuration directory:
 
 - **Windows**: `%APPDATA%\tts-mcp\.env`
 - **Linux**: `~/.config/tts-mcp/.env`
 - **macOS**: `~/Library/Application Support/tts-mcp/.env`
 
-Run the included `tts-mcp-config` Interactive CLI to safely bootstrap this file, or manually create it:
+Run the included `tts-mcp-config` CLI to safely initialize this file, or populate it manually:
 
 ```ini
-FISH_AUDIO_API_KEY=your_key_here
-ELEVENLABS_API_KEY=your_key_here
+FISHAUDIO_API_KEY="<YOUR_API_KEY_HERE>"
+ELEVENLABS_API_KEY="<YOUR_API_KEY_HERE>"
 ```
 
-### 3. Connect to your IDE
+## Setup
 
-#### Antigravity
+You can attach the server as a standard command-line MCP tool in your preferred AI editor.
 
-Provide the dynamic configuration argument to Google's MCP integration UI.
+#### Antigravity and Cursor
 
-```json
-{
-  "command": "/absolute/path/to/extracted/tts-mcp.exe"
-}
-```
+Add the executable to your MCP Servers configuration list:
 
-#### Cursor
-
-Go to `Settings -> Features -> MCP Servers`. Click `+ Add New MCP Server`.
-
-- **Name**: tts-mcp
-- **Type**: command
+- **Name**: `tts-mcp`
+- **Type**: `command`
 - **Command**: `/absolute/path/to/extracted/tts-mcp`
 
-#### Claude Code
+#### Claude Code and Claude Desktop
 
-Open `claude_desktop_config.json` and append:
+Append to your `claude_desktop_config.json`:
 
 ```json
 {
@@ -74,38 +67,27 @@ Open `claude_desktop_config.json` and append:
 }
 ```
 
-## Features
-
-When loaded, the MCP exposes several distinct commands to the LLM:
-
-- `<provider>_tts`: Automatically synthesized tools based on your `.env` file keys. Allows the LLM to directly synthesize raw speech on a specific platform. Example: `fishaudio_tts("text": "Hello", "voice_id": "xyz")`.
-- `create_persona`: Tells the server to construct a persistent semantic mapping. The LLM can specify a character "Trope", assigning it a Voice ID and binding it to a Provider. This saves to disk.
-- `speak_as_persona`: Instead of knowing raw UUIDs, the LLM can invoke `speak_as_persona("persona": "Megumin", "text": "Explosion!")`. The MCP handles routing it securely.
-
 ## Architecture
 
 ```mermaid
 %%{init: {'theme': 'dark'}}%%
 sequenceDiagram
-    participant User as IDE
-    participant MCP as TTS MCP Server
-    participant Persona as data/
-    participant Provider as TTS Engine
-    participant Speaker as Native OS Audio Decoder
-    participant Output as output/
+    participant Client as IDE (Client)
+    participant MCP as tts-mcp
+    participant Config as XDG Config
+    participant Provider as TTS API Runtime
+    participant Audio as Native Audio Driver
+    participant Cache as XDG Cache
 
-    User->>MCP: Call `speak_as_persona` (text, persona: "Megumin")
-    MCP->>Persona: Parse persona from XDG config directory
-    Persona-->>MCP: Extract `voice_id` & `provider`
-    MCP->>Provider: Stream text & voice mapping via HTTP payload
+    Client->>MCP: Call `speak_as_persona` (text, persona)
+    MCP->>Config: Map persona to provider/voice_id
+    MCP->>Provider: Request speech synthesis
+    Provider-->>MCP: MP3/WAV Audio Stream
 
-    par Real-time Bridging
-        Provider-->>MCP: Raw `.mp3` byte stream
-        MCP->>Speaker: Mount `go-beep` pipe directly to local speakers
-        MCP->>Output: Clone sequence to `XDG Cache` history
+    par Playback
+        MCP->>Audio: Buffer and pipe to host speakers
+        MCP->>Cache: Save stream to persistent storage
     end
-
-    Speaker-->>User: Plays audio in real-time
 ```
 
 ## License
