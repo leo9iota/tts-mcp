@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*' # Triggers on any tag push
+
+permissions:
+  contents: write
+
+jobs:
+  build_release:
+    name: Native Build & Release
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            ext: ""
+            deps: sudo apt-get update && sudo apt-get install -y libasound2-dev
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: ".exe"
+            deps: ""
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            ext: ""
+            deps: ""
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            ext: ""
+            deps: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install System Audio Dependencies
+        if: matrix.deps != ''
+        run: ${{ matrix.deps }}
+
+      - name: Build Core Server Binary
+        run: go build -v -o tts-mcp_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }} ./cmd/mcp
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+
+      - name: Build Setup CLI
+        run: go build -v -o tts-mcp-config_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }} ./cmd/cli
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+
+      - name: Attach binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tts-mcp_*
+            tts-mcp-config_*
