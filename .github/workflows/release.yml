@@ -9,10 +9,34 @@ permissions:
   contents: write
 
 jobs:
-  goreleaser:
-    runs-on: ubuntu-latest
+  build_release:
+    name: Native Build & Release
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            ext: ""
+            deps: sudo apt-get update && sudo apt-get install -y libasound2-dev
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: ".exe"
+            deps: ""
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            ext: ""
+            deps: ""
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            ext: ""
+            deps: ""
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
+      - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -24,12 +48,26 @@ jobs:
           cache: true
 
       - name: Install System Audio Dependencies
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev gcc-mingw-w64 gcc-aarch64-linux-gnu
+        if: matrix.deps != ''
+        run: ${{ matrix.deps }}
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          version: latest
-          args: release --clean
+      - name: Build Core Server Binary
+        run: go build -v -o tts-mcp_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }} ./cmd/mcp
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+
+      - name: Build Setup CLI
+        run: go build -v -o tts-mcp-config_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }} ./cmd/cli
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+
+      - name: Attach binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tts-mcp_*
+            tts-mcp-config_*
