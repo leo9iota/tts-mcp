@@ -20,7 +20,7 @@ import (
 
 // Start initializes the toolsets and serves the MCP stdio handler
 func Start() {
-	s := server.NewMCPServer("tts-mcp", "1.0.0")
+	s := server.NewMCPServer("tts-mcp", "1.0.1")
 
 	// Phase 2: Scaffold decoupled engine instance per server session
 	audioEngine := audio.NewEngine()
